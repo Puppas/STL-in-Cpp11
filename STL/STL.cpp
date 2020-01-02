@@ -16,18 +16,15 @@ using namespace std;
 
 int main()
 {
-	cx_stack<int> data;
+	cx_deque<int> data1({ 1, 2, 3 });
+	cx_deque<int> data2({ 1, 2 });
+	
+	
+	cout << (data1 == data2) << endl;
 
-	data.push(1);
-	data.push(2);
-	data.push(3);
+	data1.pop_back();
 
-	cout << data.top() << endl;
-	data.pop();
-
-	cout << data.top() << endl;
-	data.pop();
-	cout << data.top() << endl;
+	cout << (data1 == data2) << endl;
 	return 0;
 }
 

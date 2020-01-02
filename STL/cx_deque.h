@@ -311,6 +311,7 @@ public:
 	const_iterator cend() const { return finish; }
 	
 	reference operator[](size_type n) { return *(start + n); }
+	const_reference operator[](size_type n) const { return *(start + n); }
 	reference front() { return *start; }
 	reference back() { return *(finish - 1); }
 	
@@ -719,7 +720,7 @@ bool operator==(const cx_deque<T, Alloc>& lhs,
 		return false;
 	}
 
-	for (int i = 0; i < lhs.size(); ++i) {
+	for (std::size_t i = 0; i < lhs.size(); ++i) {
 		if (lhs[i] != rhs[i])
 			return false;
 	}
