@@ -154,6 +154,7 @@
     <ClInclude Include="alloc_destroy.h" />
     <ClInclude Include="cx_deque.h" />
     <ClInclude Include="cx_list.h" />
+    <ClInclude Include="cx_stack.h" />
     <ClInclude Include="cx_vector.h" />
     <ClInclude Include="free_list_allocator.h" />
     <ClInclude Include="malloc_allocator.h" />

@@ -56,8 +56,8 @@ public:
 
 
 		template<typename I>
-		friend deque_iterator<I>& 
-		operator+(deque_iterator<I>& iter, size_type n)
+		friend deque_iterator<I> 
+		operator+(deque_iterator<I> iter, size_type n)
 		{
 			if (n < iter.last - iter.cur) {
 				iter.cur += n;
@@ -73,20 +73,22 @@ public:
 			return iter;
 		}
 
-		iterator& operator-(size_type n)
+		iterator operator-(size_type n)
 		{
-			if (n <= cur - first) {
-				cur -= n;
+			iterator tmp = *this;
+
+			if (n <= tmp.cur - tmp.first) {
+				tmp.cur -= n;
 			}
 			else {
-				size_type jump = 1 + (n - (cur - first + 1)) / buf_size;
-				node -= jump;
-				last = *node + buf_size - 1;
-				cur = last - 1 - (n - (cur - first + 1)) % buf_size;
-				first = *node;
+				size_type jump = 1 + (n - (tmp.cur - tmp.first + 1)) / buf_size;
+				tmp.node -= jump;
+				tmp.last = *tmp.node + tmp.buf_size - 1;
+				tmp.cur = tmp.last - 1 - (n - (tmp.cur - tmp.first + 1)) % buf_size;
+				tmp.first = *tmp.node;
 			}
 
-			return *this;
+			return tmp;
 		}
 		difference_type operator-(const iterator& iter) const
 		{
@@ -196,8 +198,8 @@ public:
 		pointer operator->() const { return this->cur; }
 
 		template<typename I>
-		friend deque_const_iterator<I>& 
-		operator+(deque_const_iterator<I>& iter, size_type n)
+		friend deque_const_iterator<I>
+		operator+(deque_const_iterator<I> iter, size_type n)
 		{
 			if (n < iter.last - iter.cur) {
 				iter.cur += n;
@@ -213,20 +215,22 @@ public:
 			return iter;
 		}
 
-		iterator& operator-(size_type n)
+		iterator operator-(size_type n)
 		{
-			if (n <= cur - first) {
-				cur -= n;
+			iterator tmp = *this;
+
+			if (n <= tmp.cur - tmp.first) {
+				tmp.cur -= n;
 			}
 			else {
-				size_type jump = 1 + (n - (cur - first + 1)) / buf_size;
-				node -= jump;
-				last = *node + buf_size - 1;
-				cur = last - 1 - (n - (cur - first + 1)) % buf_size;
-				first = *node;
+				size_type jump = 1 + (n - (tmp.cur - tmp.first + 1)) / buf_size;
+				tmp.node -= jump;
+				tmp.last = *tmp.node + tmp.buf_size - 1;
+				tmp.cur = tmp.last - 1 - (n - (tmp.cur - tmp.first + 1)) % buf_size;
+				tmp.first = *tmp.node;
 			}
 
-			return *this;
+			return tmp;
 		}
 
 		difference_type operator-(const iterator& iter) const
@@ -286,6 +290,7 @@ public:
 	using difference_type = std::ptrdiff_t;
 	using iterator = deque_iterator<T>;
 	using const_iterator = deque_const_iterator<T>;
+	using const_reference = const reference;
 	
 protected:
 	using map_pointer = pointer * ;
@@ -327,6 +332,12 @@ public:
 	iterator erase(iterator beg, iterator end);
 
 	iterator insert(iterator pos, const value_type& val);
+
+	friend bool operator==<>(const cx_deque& lhs, 
+							 const cx_deque& rhs);
+	friend bool operator!=<>(const cx_deque& lhs,
+							 const cx_deque& rhs);
+
 
 protected:
 	void create_map(size_type element_num);
@@ -700,6 +711,28 @@ cx_deque<T, Alloc>::insert(iterator pos, const value_type& val)
 }
 
 
+template<typename T, typename Alloc>
+bool operator==(const cx_deque<T, Alloc>& lhs,
+				const cx_deque<T, Alloc>& rhs)
+{
+	if (lhs.size() != rhs.size()) {
+		return false;
+	}
+
+	for (int i = 0; i < lhs.size(); ++i) {
+		if (lhs[i] != rhs[i])
+			return false;
+	}
+
+	return true;
+}
+
+template<typename T, typename Alloc>
+bool operator!=(const cx_deque<T, Alloc>& lhs,
+				const cx_deque<T, Alloc>& rhs)
+{
+	return !(lhs == rhs);
+}
 
 
 

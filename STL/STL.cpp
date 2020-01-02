@@ -7,6 +7,7 @@
 #include "cx_list.h"
 #include "cx_deque.h"
 #include <vector>
+#include "cx_stack.h"
 
 using namespace std;
 /*
@@ -15,13 +16,18 @@ using namespace std;
 
 int main()
 {
-	cx_deque<double> container(40, 1);
+	cx_stack<int> data;
 
-	container.push_front(0);
-	container.push_back(5);
+	data.push(1);
+	data.push(2);
+	data.push(3);
 
-	for (auto item : container)
-		cout << item << endl;
+	cout << data.top() << endl;
+	data.pop();
+
+	cout << data.top() << endl;
+	data.pop();
+	cout << data.top() << endl;
 	return 0;
 }
 
