@@ -54,40 +54,39 @@ public:
 		reference operator*() { return *cur; }
 		pointer operator->() { return this->cur; }
 
-		iterator operator+(size_type n)
-		{
-			iterator tmp = *this;
 
-			if (n < tmp.last - tmp.cur) {
-				tmp.cur += n;
+		template<typename I>
+		friend deque_iterator<I>& 
+		operator+(deque_iterator<I>& iter, size_type n)
+		{
+			if (n < iter.last - iter.cur) {
+				iter.cur += n;
 			}
 			else {
-				size_type jump = 1 + (n - (tmp.last - tmp.cur)) / buf_size;
-				tmp.node += jump;
-				tmp.cur = *tmp.node + (n - (tmp.last - tmp.cur)) % buf_size;
-				tmp.first = *tmp.node;
-				tmp.last = *tmp.node + buf_size;
+				size_type jump = 1 + (n - (iter.last - iter.cur)) / iter.buf_size;
+				iter.node += jump;
+				iter.cur = *iter.node + (n - (iter.last - iter.cur)) % iter.buf_size;
+				iter.first = *iter.node;
+				iter.last = *iter.node + iter.buf_size;
 			}
 
-			return tmp;
+			return iter;
 		}
 
-		iterator operator-(size_type n)
+		iterator& operator-(size_type n)
 		{
-			iterator tmp = *this;
-
-			if (n <= tmp.cur - tmp.first) {
-				tmp.cur -= n;
+			if (n <= cur - first) {
+				cur -= n;
 			}
 			else {
-				size_type jump = 1 + (n - (tmp.cur - tmp.first + 1)) / buf_size;
-				tmp.node -= jump;
-				tmp.last = *tmp.node + buf_size - 1;
-				tmp.cur = tmp.last - 1 - (n - (tmp.cur - tmp.first + 1)) % buf_size;
-				tmp.first = *tmp.node;
+				size_type jump = 1 + (n - (cur - first + 1)) / buf_size;
+				node -= jump;
+				last = *node + buf_size - 1;
+				cur = last - 1 - (n - (cur - first + 1)) % buf_size;
+				first = *node;
 			}
 
-			return tmp;
+			return *this;
 		}
 		difference_type operator-(const iterator& iter) const
 		{
@@ -106,12 +105,12 @@ public:
 			}
 		}
 
-		iterator operator++() 
+		iterator& operator++() 
 		{
-			*this = this->operator+(1);
+			*this = *this + 1;
 			return *this; 
 		}
-		iterator operator--() 
+		iterator& operator--() 
 		{
 			*this = this->operator-(1);
 			return *this; 
@@ -119,7 +118,7 @@ public:
 		iterator operator++(int)
 		{
 			iterator tmp = *this;
-			*this = this->operator++();
+			*this = *this + 1;
 			return tmp;
 		}
 		iterator operator--(int)
@@ -196,41 +195,40 @@ public:
 		reference operator*() const { return *cur; }
 		pointer operator->() const { return this->cur; }
 
-		iterator operator+(size_type n)
+		template<typename I>
+		friend deque_const_iterator<I>& 
+		operator+(deque_const_iterator<I>& iter, size_type n)
 		{
-			iterator tmp = *this;
-
-			if (n < tmp.last - tmp.cur) {
-				tmp.cur += n;
+			if (n < iter.last - iter.cur) {
+				iter.cur += n;
 			}
 			else {
-				size_type jump = 1 + (n - (tmp.last - tmp.cur)) / buf_size;
-				tmp.node += jump;
-				tmp.cur = *tmp.node + (n - (tmp.last - tmp.cur)) % buf_size;
-				tmp.first = *tmp.node;
-				tmp.last = *tmp.node + buf_size;
+				size_type jump = 1 + (n - (iter.last - iter.cur)) / iter.buf_size;
+				iter.node += jump;
+				iter.cur = *iter.node + (n - (iter.last - iter.cur)) % iter.buf_size;
+				iter.first = *iter.node;
+				iter.last = *iter.node + iter.buf_size;
 			}
 
-			return tmp;
+			return iter;
 		}
 
-		iterator operator-(size_type n)
+		iterator& operator-(size_type n)
 		{
-			iterator tmp = *this;
-
-			if (n <= tmp.cur - tmp.first) {
-				tmp.cur -= n;
+			if (n <= cur - first) {
+				cur -= n;
 			}
 			else {
-				size_type jump = 1 + (n - (tmp.cur - tmp.first + 1)) / buf_size;
-				tmp.node -= jump;
-				tmp.last = *tmp.node + buf_size - 1;
-				tmp.cur = tmp.last - 1 - (n - (tmp.cur - tmp.first + 1)) % buf_size;
-				tmp.first = *tmp.node;
+				size_type jump = 1 + (n - (cur - first + 1)) / buf_size;
+				node -= jump;
+				last = *node + buf_size - 1;
+				cur = last - 1 - (n - (cur - first + 1)) % buf_size;
+				first = *node;
 			}
 
-			return tmp;
+			return *this;
 		}
+
 		difference_type operator-(const iterator& iter) const
 		{
 			difference_type count = 0;
@@ -249,12 +247,12 @@ public:
 		}
 
 
-		iterator operator++()
+		iterator& operator++()
 		{
-			*this = this->operator+(1);
+			*this = *this + 1;
 			return *this;
 		}
-		iterator operator--()
+		iterator& operator--()
 		{
 			*this = this->operator-(1);
 			return *this;
@@ -262,7 +260,7 @@ public:
 		iterator operator++(int)
 		{
 			iterator tmp = *this;
-			*this = this->operator++();
+			*this = *this + 1;
 			return tmp;
 		}
 		iterator operator--(int)

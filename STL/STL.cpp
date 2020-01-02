@@ -15,12 +15,12 @@ using namespace std;
 
 int main()
 {
-	cx_vector<int> data;
+	cx_deque<double> container(40, 1);
 
-	data.push_back(1);
-	data.push_back(2);
+	container.push_front(0);
+	container.push_back(5);
 
-	for (auto item : data)
+	for (auto item : container)
 		cout << item << endl;
 	return 0;
 }
