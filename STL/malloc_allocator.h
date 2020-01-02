@@ -20,7 +20,9 @@ private:
 public:
 	malloc_allocator() {}
 	template<typename U>
-	malloc_allocator(const malloc_allocator<U>&) {}
+	malloc_allocator(const malloc_allocator<U>&) {
+		//no state to copy
+	}
 
 	static T *allocate(std::size_t num);
 	static T *reallocate(T *p, std::size_t num);
