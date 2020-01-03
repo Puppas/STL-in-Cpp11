@@ -37,12 +37,13 @@ public:
 	size_type capacity() const { return end_of_storage - start; }
 	bool empty() const { return start == finish; }
 	reference operator[](size_type n) { return *(start + n); }
+	const_reference operator[](size_type n) { return *(start + n); }
 
 	cx_vector();
 	cx_vector(size_type n, const T& value) { fill_initialize(n, value); }
 	cx_vector(int n, const T& value) { fill_initialize(n, value); }
 	cx_vector(long n, const T& value) { fill_initialize(n, value); }
-	cx_vector(std::initializer_list<T> list);
+	explicit cx_vector(std::initializer_list<T> list);
 	cx_vector(const cx_vector<T>& vec);
 	cx_vector(cx_vector<T>&& vec);
 	explicit cx_vector(size_type n) { fill_initialize(n, T()); }
@@ -73,6 +74,12 @@ public:
 	void clear() { erase(start, finish); }
 
 	iterator insert(iterator pos, size_type n, const T& value);
+
+	friend bool operator==<>(const cx_vector& lhs, 
+							 const cx_vector& rhs);
+
+	friend bool operator!=<>(const cx_vector& lhs,
+							 const cx_vector& rhs);
 };
 
 
@@ -267,3 +274,34 @@ cx_vector<T, Alloc>::insert(typename cx_vector<T, Alloc>::iterator pos,
 
 	return pos;
 }
+
+
+template<typename T, typename Alloc>
+bool operator==(const cx_vector<T, Alloc>& lhs, 
+				const cx_vector<T, Alloc>& rhs)
+{
+	if (lhs.size() != rhs.size())
+		return false;
+
+	for (std::size_t i = 0; i < lhs.size(); ++i) {
+		if (lhs[i] != rhs[i])
+			return false;
+	}
+
+	return true;
+}
+
+
+template<typename T, typename Alloc>
+bool operator!=(const cx_vector<T, Alloc>& lhs,
+				const cx_vector<T, Alloc>& rhs)
+{
+	return !(lhs == rhs);
+}
+
+
+
+
+
+
+

@@ -297,8 +297,8 @@ protected:
 
 public:
 	cx_deque();
-	cx_deque(size_type n, const value_type& value = value_type());
-	cx_deque(std::initializer_list<value_type> list);
+	explicit cx_deque(size_type n, const value_type& value = value_type());
+	explicit cx_deque(std::initializer_list<value_type> list);
 	cx_deque(const cx_deque<T>& deq);
 	cx_deque(cx_deque<T>&& deq);
 	cx_deque<T, Alloc>& operator=(const cx_deque<T>& deq);
@@ -313,7 +313,9 @@ public:
 	reference operator[](size_type n) { return *(start + n); }
 	const_reference operator[](size_type n) const { return *(start + n); }
 	reference front() { return *start; }
+	const_reference front() const { return *start; }
 	reference back() { return *(finish - 1); }
+	const_reference back() const { return *(finish - 1); }
 	
 	void swap(cx_deque<T>& deq);
 	template<typename U>

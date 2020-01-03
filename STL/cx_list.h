@@ -155,7 +155,7 @@ public:
 
 public:
 	cx_list();
-	cx_list(std::initializer_list<T> init_val);
+	explicit cx_list(std::initializer_list<T> init_val);
 	cx_list(const cx_list<T>& list);
 	cx_list(cx_list<T>&& list);
 	cx_list<T, Alloc>& operator=(const cx_list<T>& list);
@@ -212,6 +212,12 @@ public:
 	void merge(cx_list<T>& list);      //已排序下将元素转移至类中
 	void reverse();
 	void sort();
+
+	friend bool operator==<>(const cx_list& lhs,
+							 const cx_list& rhs);
+
+	friend bool operator!=<>(const cx_list& lhs,
+							 const cx_list& rhs);
 
 
 protected:
@@ -511,3 +517,29 @@ void cx_list<T, Alloc>::transfer(
 }
 
 
+template<typename T, typename Alloc>
+bool operator==(const cx_list<T, Alloc>& lhs,
+				const cx_list<T, Alloc>& rhs)
+{
+	if (lhs.size() != rhs.size())
+		return false;
+
+	for (auto l_iter = lhs.cbegin(), r_iter = rhs.cbegin(); 
+		 l_iter != lhs.cend(); 
+		 ++l_iter, ++r_iter) {
+
+		if (l_iter->data != r_iter->data) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+template<typename T, typename Alloc>
+bool operator!=(const cx_list<T, Alloc>& lhs,
+				const cx_list<T, Alloc>& rhs)
+{
+	return !(lhs == rhs);
+}

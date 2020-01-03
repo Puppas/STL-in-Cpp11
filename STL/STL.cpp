@@ -16,15 +16,16 @@ using namespace std;
 
 int main()
 {
-	cx_deque<int> data1({ 1, 2, 3 });
-	cx_deque<int> data2({ 1, 2 });
-	
-	
-	cout << (data1 == data2) << endl;
+	cx_deque<int> con({ 1, 2, 3 });
 
-	data1.pop_back();
+	cx_stack<int> data(con);
 
-	cout << (data1 == data2) << endl;
+	while (!data.empty())
+	{
+		cout << data.top() << endl;
+		data.pop();
+	}
+
 	return 0;
 }
 

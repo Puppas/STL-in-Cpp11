@@ -17,6 +17,15 @@ public:
 	explicit cx_stack(container_type&& con) { 
 		container = std::move(con); 
 	}
+	explicit cx_stack(cx_stack&& stack) {
+		container = std::move(stack.container);
+	}
+
+	cx_stack& operator=(cx_stack&& stack) {
+		container = std::move(stack.container);
+		return *this;
+	}
+
 
 	bool empty() const { return container.empty(); }
 	size_type size() const { return container.size(); }
