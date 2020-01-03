@@ -33,6 +33,17 @@ public:
 	void push(const value_type& val) {  container.push_back(val); }
 	void pop() { container.pop_back(); }
 
+	void swap(cx_stack& stack) {
+		this->container.swap(stack.container);
+	}
+
+	template<typename U, typename Container>
+	friend void swap(cx_stack<U, Container>& lhs,
+					 cx_stack<U, Container>& rhs)
+	{
+		lhs.swap(rhs);
+	}
+
 	friend bool operator==<>(const cx_stack& lhs, const cx_stack& rhs);
 	friend bool operator!=<>(const cx_stack& lhs, const cx_stack& rhs);
 
