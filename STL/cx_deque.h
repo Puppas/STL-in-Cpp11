@@ -403,7 +403,7 @@ cx_deque<T, Alloc>::cx_deque(cx_deque<T>&& deq)
 	start = deq.start;
 	finish = deq.finish;
 	map = deq.map;
-
+	
 	deq.start.clear();
 	deq.finish.clear();
 	deq.map = nullptr;

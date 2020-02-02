@@ -6,26 +6,33 @@
 #include "cx_vector.h"
 #include "cx_list.h"
 #include "cx_deque.h"
-#include <vector>
 #include "cx_stack.h"
+#include "cx_queue.h"
+#include "thread_queue.h"
+#include <cmath>
+#include <future>
+#include <atomic>
+#include <thread>
+#include <string>
+#include <vector>
+
 
 using namespace std;
 /*
 	在main中测试容器
 */
 
-int main()
-{
-	cx_deque<int> con({ 1, 2, 3 });
+int main() {
+	cx_vector<int> data{ 1, 2, 3 };
 
-	cx_stack<int> data(con);
+	for (int i = 4; i < 500; ++i)
+		data.push_back(i);
 
-	while (!data.empty())
-	{
-		cout << data.top() << endl;
-		data.pop();
-	}
-
+	for (auto item : data)
+		cout << item << endl;
+	
 	return 0;
 }
+
+
 

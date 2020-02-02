@@ -37,7 +37,7 @@ public:
 	size_type capacity() const { return end_of_storage - start; }
 	bool empty() const { return start == finish; }
 	reference operator[](size_type n) { return *(start + n); }
-	const_reference operator[](size_type n) { return *(start + n); }
+	const_reference operator[](size_type n) const { return *(start + n); }
 
 	cx_vector();
 	cx_vector(size_type n, const T& value) { fill_initialize(n, value); }

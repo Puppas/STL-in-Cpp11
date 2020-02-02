@@ -11,29 +11,35 @@ private:
 	static const std::size_t MAX_BLOCK_SIZE = 128;
 	static const std::size_t FREE_LIST_NUM = MAX_BLOCK_SIZE / ALIGN;
 
-	union obj
+	struct obj
 	{
 		obj *free_list_link;
-		char data[1];
 	};
 
 	static obj *free_list[FREE_LIST_NUM];
+	//内存池起始位置
 	static char *start_pool;
+	//内存池结束位置
 	static char *end_pool;
 	static std::size_t heap_size;
 
 
+	//将byte上调至8的倍数
 	static std::size_t round_up(std::size_t byte)
 	{
 		return ((byte) + ALIGN - 1) & ~(ALIGN - 1);
 	}
 
+	//由所需内存大小决定free_list的索引
 	static std::size_t free_list_index(std::size_t byte)
 	{
 		return  byte / (ALIGN + 1);
 	}
 
+	//为free_list加入新的块
 	static T *refill(std::size_t block_size);
+
+	//分配 num 个 block_size 的空间
 	static char *chunk_alloc(std::size_t block_size, std::size_t& num);
 
 
@@ -70,7 +76,7 @@ template<typename T>
 T *free_list_allocator<T>::allocate(std::size_t num)
 {
 	obj *result;
-
+	
 	if (num * sizeof(T) > MAX_BLOCK_SIZE) {
 		return malloc_allocator<T>::allocate(num);
 	}

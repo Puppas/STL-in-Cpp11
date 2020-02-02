@@ -37,9 +37,9 @@ public:
 		this->container.swap(stack.container);
 	}
 
-	template<typename U, typename Container>
-	friend void swap(cx_stack<U, Container>& lhs,
-					 cx_stack<U, Container>& rhs)
+	template<typename U, typename ContainerType>
+	friend void swap(cx_stack<U, ContainerType>& lhs,
+					 cx_stack<U, ContainerType>& rhs)
 	{
 		lhs.swap(rhs);
 	}
@@ -48,7 +48,7 @@ public:
 	friend bool operator!=<>(const cx_stack& lhs, const cx_stack& rhs);
 
 protected:
-	Container container;
+	container_type container;
 };
 
 
