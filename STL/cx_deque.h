@@ -25,7 +25,7 @@ public:
 		U *first;          //当前缓冲区第一个元素
 		U *last;		//当前缓冲区最后元素的下一位置
 		map_pointer node;
-		size_type buf_size = sizeof(U) >= 512 ? 1 : 512 / sizeof(U);
+		size_type buf_size = sizeof(U) >= 128 ? 1 : 128 / sizeof(U);
 
 		deque_iterator() : cur(nullptr), first(nullptr),
 			last(nullptr), node(nullptr) {}
@@ -83,7 +83,7 @@ public:
 			else {
 				size_type jump = 1 + (n - (tmp.cur - tmp.first + 1)) / buf_size;
 				tmp.node -= jump;
-				tmp.last = *tmp.node + tmp.buf_size - 1;
+				tmp.last = *tmp.node + tmp.buf_size;
 				tmp.cur = tmp.last - 1 - (n - (tmp.cur - tmp.first + 1)) % buf_size;
 				tmp.first = *tmp.node;
 			}
@@ -155,7 +155,7 @@ public:
 		const U *first;          //当前缓冲区第一个元素
 		const U *last;		//当前缓冲区最后元素的下一位置
 		const U* const *node;
-		size_type buf_size = sizeof(U) >= 512 ? 1 : 512 / sizeof(U);
+		size_type buf_size = sizeof(U) >= 128 ? 1 : 128 / sizeof(U);
 
 		deque_const_iterator() : cur(nullptr), first(nullptr),
 			last(nullptr), node(nullptr) {}
@@ -225,7 +225,7 @@ public:
 			else {
 				size_type jump = 1 + (n - (tmp.cur - tmp.first + 1)) / buf_size;
 				tmp.node -= jump;
-				tmp.last = *tmp.node + tmp.buf_size - 1;
+				tmp.last = *tmp.node + tmp.buf_size;
 				tmp.cur = tmp.last - 1 - (n - (tmp.cur - tmp.first + 1)) % buf_size;
 				tmp.first = *tmp.node;
 			}
@@ -430,7 +430,7 @@ cx_deque<T, Alloc>::operator=(const cx_deque<T>& deq)
 template<typename T, typename Alloc>
 cx_deque<T, Alloc>::~cx_deque()
 {
-	destroy(start, finish);
+	alloc::destroy(start, finish);
 
 	for (map_pointer map_ptr = start.node; map_ptr <= finish.node; 
 		 ++map_ptr)
@@ -535,7 +535,7 @@ cx_deque<T, Alloc>::size() const
 template<typename T, typename Alloc>
 void cx_deque<T, Alloc>::clear()
 {
-	destroy(start, finish);
+	alloc::destroy(start, finish);
 
 	for (map_pointer node = start.node + 1; node <= finish.node; ++node)
 	{
@@ -553,7 +553,7 @@ void cx_deque<T, Alloc>::push_back(const value_type& val)
 {
 	if (finish.cur < finish.last - 1)
 	{
-		construct(finish.cur, val);
+		alloc::construct(finish.cur, val);
 		++finish.cur;
 	}
 	else 
@@ -564,7 +564,7 @@ void cx_deque<T, Alloc>::push_back(const value_type& val)
 
 		map_pointer next_node = finish.node + 1;
 		*next_node = Alloc::allocate(buf_size);
-		construct(finish.cur, val);
+		alloc::construct(finish.cur, val);
 		++finish;
 	}
 }
@@ -576,7 +576,7 @@ void cx_deque<T, Alloc>::push_front(const value_type& val)
 	if (start.cur > start.first)
 	{
 		--start.cur;
-		construct(start.cur, val);
+		alloc::construct(start.cur, val);
 	}
 	else
 	{
@@ -587,7 +587,7 @@ void cx_deque<T, Alloc>::push_front(const value_type& val)
 		map_pointer prev_node = start.node - 1;
 		*prev_node = Alloc::allocate(buf_size);
 		--start;
-		construct(start.cur, val);
+		alloc::construct(start.cur, val);
 	}
 }
 
@@ -598,13 +598,13 @@ void cx_deque<T, Alloc>::pop_back()
 	if (finish.cur != finish.first)
 	{
 		--finish.cur;
-		destroy(finish.cur);
+		alloc::destroy(finish.cur);
 	}
 	else
 	{
 		--finish;
 		Alloc::deallocate(*(finish.node + 1), buf_size);
-		destroy(finish.cur);
+		alloc::destroy(finish.cur);
 	}
 }
 
@@ -614,12 +614,12 @@ void cx_deque<T, Alloc>::pop_front()
 {
 	if (start.cur < start.last - 1)
 	{
-		destroy(start.cur);
+		alloc::destroy(start.cur);
 		++start.cur;
 	}
 	else
 	{
-		destroy(start.cur);
+		alloc::destroy(start.cur);
 		++start;
 		Alloc::deallocate(*(start.node - 1), buf_size);
 	}
@@ -654,7 +654,7 @@ cx_deque<T, Alloc>::erase(iterator beg, iterator end)
 		iterator old_finish = finish;
 		finish = std::copy(end, finish, beg);
 
-		destroy(finish, old_finish);
+		alloc::destroy(finish, old_finish);
 		for (map_pointer node = finish.node + 1; node <= old_finish.node;
 			 ++node) {
 			Alloc::deallocate(*node, buf_size);
@@ -667,7 +667,7 @@ cx_deque<T, Alloc>::erase(iterator beg, iterator end)
 		iterator old_start = start;
 		start = std::move_backward(start, beg, end);
 
-		destroy(old_start, start);
+		alloc::destroy(old_start, start);
 		for (map_pointer node = old_start.node; node != start.node;
 			 ++node){
 			Alloc::deallocate(*node, buf_size);

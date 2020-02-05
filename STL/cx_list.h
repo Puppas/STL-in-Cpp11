@@ -293,7 +293,7 @@ cx_list<T, Alloc>::~cx_list()
 	for (iterator iter = begin(); iter != end(); )
 	{
 		old_iter = iter;
-		destroy(&(iter->data));
+		alloc::destroy(&(iter->data));
 		++iter;
 		Alloc::deallocate(old_iter.node_ptr, 1);
 	}
@@ -336,7 +336,7 @@ void cx_list<T, Alloc>::clear()
 	for (iterator iter = begin(); iter != end(); )
 	{
 		old_iter = iter;
-		destroy(&(iter->data));
+		alloc::destroy(&(iter->data));
 		++iter;
 		Alloc::deallocate(old_iter.node_ptr, 1);
 	}
@@ -471,7 +471,7 @@ typename cx_list<T, Alloc>::iterator
 cx_list<T, Alloc>::create_node(const T& val)
 {
 	list_node<T> *ptr = Alloc::allocate(1);
-	construct(&(ptr->data), val);
+	alloc::construct(&(ptr->data), val);
 	ptr->next = nullptr;
 	ptr->prev = nullptr;
 
@@ -488,7 +488,7 @@ void cx_list<T, Alloc>::destroy_node(
 	prev_node->next = next_node.node_ptr;
 	next_node->prev = prev_node.node_ptr;
 
-	destroy(&(iter->data));
+	alloc::destroy(&(iter->data));
 	Alloc::deallocate(iter.node_ptr, 1);
 }
 

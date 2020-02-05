@@ -58,7 +58,7 @@ public:
 	}
 
 	~cx_vector() {
-		destroy(start, finish);
+		alloc::destroy(start, finish);
 		Alloc::deallocate(start, end_of_storage - start);
 	}
 
@@ -97,6 +97,9 @@ void cx_vector<T, Alloc>::fill_initialize(
 			typename cx_vector<T, Alloc>::size_type n,
 			const T& value)
 {
+	if (n == 0)
+		n = 16;
+
 	start = Alloc::allocate(n);
 	finish = std::uninitialized_fill_n(start, n, value);
 	end_of_storage = finish;
@@ -168,7 +171,7 @@ void cx_vector<T, Alloc>::push_back(const T& value)
 {
 	if (finish != end_of_storage)
 	{
-		construct(finish, value);
+		alloc::construct(finish, value);
 		++finish;
 	}
 	else
@@ -178,10 +181,10 @@ void cx_vector<T, Alloc>::push_back(const T& value)
 
 		iterator new_start = Alloc::allocate(new_size);
 		iterator new_finish = std::_Uninitialized_move_unchecked(start, finish, new_start);
-		construct(new_finish, value);
+		alloc::construct(new_finish, value);
 		++new_finish;
 
-		destroy(start, finish);
+		alloc::destroy(start, finish);
 		Alloc::deallocate(start, old_size);
 		
 		start = new_start;
@@ -195,7 +198,7 @@ template<typename T, typename Alloc>
 void cx_vector<T, Alloc>::pop_back()
 {
 	--finish;
-	destroy(finish);
+	alloc::destroy(finish);
 }
 
 
@@ -209,7 +212,7 @@ cx_vector<T, Alloc>::erase(typename cx_vector<T, Alloc>::iterator pos)
 	}
 
 	--finish;
-	destroy(finish);
+	alloc::destroy(finish);
 	return pos;
 }
 
@@ -225,7 +228,7 @@ cx_vector<T, Alloc>::erase(typename cx_vector<T, Alloc>::iterator beg,
 		std::move(end, finish, beg);
 	}
 
-	destroy(finish - end + beg, finish);
+	alloc::destroy(finish - end + beg, finish);
 	finish -= end - beg;
 	return beg;
 }
@@ -264,7 +267,7 @@ cx_vector<T, Alloc>::insert(typename cx_vector<T, Alloc>::iterator pos,
 		new_finish = std::uninitialized_fill_n(new_finish, n, value);
 		new_finish = std::_Uninitialized_move_unchecked(pos, finish, new_finish);
 		
-		destroy(start, finish);
+		alloc::destroy(start, finish);
 		Alloc::deallocate(start, old_size);
 
 		start = new_start;

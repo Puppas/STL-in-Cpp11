@@ -74,13 +74,12 @@ std::size_t free_list_allocator<T>::heap_size = 0;
 
 template<typename T>
 T *free_list_allocator<T>::allocate(std::size_t num)
-{
-	obj *result;
-	
+{	
 	if (num * sizeof(T) > MAX_BLOCK_SIZE) {
 		return malloc_allocator<T>::allocate(num);
 	}
 
+	obj *result;
 	auto target_free_list = free_list + free_list_index(num * sizeof(T));
 	result = *target_free_list;
 	
@@ -101,7 +100,7 @@ void free_list_allocator<T>::deallocate(T *p, std::size_t num)
 		malloc_allocator<T>::deallocate(p, num);
 		return;
 	}
-
+	
 	auto target_free_list = free_list + free_list_index(size);
 	obj *target_block = reinterpret_cast<obj*>(p);
 	target_block->free_list_link = *target_free_list;
@@ -185,7 +184,7 @@ free_list_allocator<T>::chunk_alloc(std::size_t block_size, std::size_t& num)
 			obj **target_free_list;
 			obj *head;
 
-			for (std::size_t i = block_size + ALIGN; i < MAX_BLOCK_SIZE; i += ALIGN) {
+			for (std::size_t i = block_size + ALIGN; i <= MAX_BLOCK_SIZE; i += ALIGN) {
 				target_free_list = free_list + free_list_index(i);
 				head = *target_free_list;
 

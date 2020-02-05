@@ -1,31 +1,31 @@
 #pragma once
-#include "free_list_allocator.h"
-#include "cx_stack.h"
 #include <mutex>
 #include <memory>
 #include <exception>
+#include <stack>
 
 
-class empty_stack_error : public std::exception
+class empty_stack : public std::exception
 {
-	const char* what() const noexcept {
+public:
+	const char *what() const noexcept {
 		return "stack is empty";
 	}
 };
 
-
-template<typename T, typename Alloc = free_list_allocator<T>>
+template<typename T>
 class thread_stack
 {
 private:
-	cx_stack<T, Alloc> stack;
-	mutable std::mutex stack_mutex;
+    cx_stack<T> stack;
+	mutable std::recursive_mutex stack_mutex;
+	
 
 public:
 	thread_stack() = default;
 
 	thread_stack(const thread_stack& other) {
-		std::lock_guard<std::mutex> lock(other.stack_mutex);
+		std::lock_guard<std::recursive_mutex> lock(other.stack_mutex);
 		stack = other.stack;
 	}
 
@@ -33,19 +33,25 @@ public:
 
 
 	void push(const T& val) {
-		std::lock_guard<std::mutex> lock(stack_mutex);
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		stack.push(val);
 	}
 
+	void push(T&& val) {
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
+		stack.push(std::forward<T>(val));
+
+	}
+
 	bool empty() const {
-		std::lock_guard<std::mutex> lock(stack_mutex);
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		return stack.empty();
 	}
 
 	std::shared_ptr<T> pop() {
-		std::lock_guard<std::mutex> lock(stack_mutex);
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		if (empty()) {
-			throw empty_stack_error();
+			return std::shared_ptr<T>();
 		}
 
 		std::shared_ptr<T> ptr = 
@@ -56,9 +62,9 @@ public:
 	}
 
 	void pop(T& val) {
-		std::lock_guard<std::mutex> lock(stack_mutex);
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		if (empty()) {
-			throw empty_stack_error();
+			throw empty_stack();
 		}
 
 		val = std::move(stack.top());
