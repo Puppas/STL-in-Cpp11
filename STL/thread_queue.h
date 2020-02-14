@@ -36,6 +36,7 @@ public:
 	std::shared_ptr<T> wait_pop();
 	void wait_pop(T& val);
 	void push(const T& val);
+	void push(T&& val);
 	bool empty();
 
 };
@@ -57,6 +58,22 @@ void thread_queue<T>::push(const T& val)
 	cond.notify_one();
 }
 
+
+template<typename T>
+void thread_queue<T>::push(T&& val)
+{
+	node *new_tail = new node;
+	new_tail->next = nullptr;
+
+	{
+		std::lock_guard<std::mutex> lock(tail_mutex);
+		tail->data = std::move(val);
+		tail->next = new_tail;
+		tail = new_tail;
+	}
+
+	cond.notify_one();
+}
 
 template<typename T>
 typename thread_queue<T>::node *

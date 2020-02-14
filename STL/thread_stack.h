@@ -5,14 +5,6 @@
 #include <stack>
 
 
-class empty_stack : public std::exception
-{
-public:
-	const char *what() const noexcept {
-		return "stack is empty";
-	}
-};
-
 template<typename T>
 class thread_stack
 {
@@ -61,14 +53,15 @@ public:
 		return ptr;
 	}
 
-	void pop(T& val) {
+	bool pop(T& val) {
 		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		if (empty()) {
-			throw empty_stack();
+			return false;
 		}
 
 		val = std::move(stack.top());
 		stack.pop();
+		return true;
 	}
 };
 

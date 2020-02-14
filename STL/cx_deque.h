@@ -327,6 +327,7 @@ public:
 	void clear();
 
 	void push_back(const value_type& val);
+	void push_back(value_type&& val);
 	void push_front(const value_type& val);
 	void pop_back();
 	void pop_front();
@@ -565,6 +566,28 @@ void cx_deque<T, Alloc>::push_back(const value_type& val)
 		map_pointer next_node = finish.node + 1;
 		*next_node = Alloc::allocate(buf_size);
 		alloc::construct(finish.cur, val);
+		++finish;
+	}
+}
+
+
+template<typename T, typename Alloc>
+void cx_deque<T, Alloc>::push_back(value_type&& val)
+{
+	if (finish.cur < finish.last - 1)
+	{
+		alloc::construct(finish.cur, std::forward<T>(val));
+		++finish.cur;
+	}
+	else
+	{
+		if (finish.node == map + map_size - 1) {
+			reallocate_map(1, false);
+		}
+
+		map_pointer next_node = finish.node + 1;
+		*next_node = Alloc::allocate(buf_size);
+		alloc::construct(finish.cur, std::forward<T>(val));
 		++finish;
 	}
 }

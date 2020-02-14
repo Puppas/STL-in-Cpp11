@@ -9,6 +9,12 @@ namespace alloc {
 		new (p) T1(value);
 	}
 
+	template<typename T1, typename T2>
+	void construct(T1 *p, T2&& value)
+	{
+		new (p) T1(std::forward<T2>(value));
+	}
+
 
 	template<typename T>
 	void destroy(T *p)

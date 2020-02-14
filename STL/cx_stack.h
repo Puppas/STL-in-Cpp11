@@ -12,7 +12,7 @@ public:
 	using size_type = std::size_t;
 
 public:
-	cx_stack() { container = cx_deque<T>(); }
+	cx_stack() { container = Container(); }
 	explicit cx_stack(const container_type& con) { container = con; }
 	explicit cx_stack(container_type&& con) { 
 		container = std::move(con); 

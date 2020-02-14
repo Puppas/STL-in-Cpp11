@@ -18,7 +18,9 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
-
+#include "thread_pool.h"
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 /*
@@ -28,9 +30,9 @@ using namespace std;
 template<typename ForwardIterator, typename T>
 struct accumulate_block
 {
-	void operator()(ForwardIterator first, ForwardIterator last, T& result)
+	T operator()(ForwardIterator first, ForwardIterator last)
 	{
-		result = std::accumulate(first, last, result);
+		return std::accumulate(first, last, 0);
 	}
 };
 
@@ -42,41 +44,31 @@ T parallel_accumulate(ForwardIterator first, ForwardIterator last, T init)
 	if (distance == 0)
 		return init;
 
-	const std::size_t min_num_per_thread = 32;
-	const std::size_t max_thread_num =
-		(distance + min_num_per_thread - 1) / min_num_per_thread;
+	const std::size_t block_size = 25;
+	const std::size_t block_count = (distance + block_size - 1) / block_size;
 
-	const std::size_t hardware_thread_num = std::thread::hardware_concurrency();
-
-	const std::size_t thread_num = std::min(max_thread_num,
-			hardware_thread_num != 0 ? hardware_thread_num : 2);
-	
-	const std::size_t num_per_thread = distance / thread_num;
-
-	cx_vector<T> results(thread_num);
-	cx_vector<std::thread> threads(thread_num - 1);
+	std::vector<std::future<T>> futures(block_count - 1);
+	thread_pool pool;
 
 	ForwardIterator block_start = first;
-	ForwardIterator block_end = block_start + num_per_thread;
-	for (std::size_t i = 0; i < thread_num - 1; ++i)
+	for (std::size_t i = 0; i < block_count - 1; ++i)
 	{
-		threads[i] = std::thread(
-			accumulate_block<ForwardIterator, T>(), 
-			block_start, block_end, 
-			std::ref(results[i]));
+		ForwardIterator block_end = block_start + block_size;
+
+		futures[i] = pool.submit([=]() { 
+			return accumulate_block<ForwardIterator, T>()(
+				block_start, block_end);
+		});
 
 		block_start = block_end;
-		block_end += num_per_thread;
 	}
 
-	accumulate_block<ForwardIterator, T>()(block_start, last, 
-						results[thread_num - 1]);
+	T last_result = accumulate_block<ForwardIterator, T>()(block_start, last);
 
-	T result_sum = std::move(init) + std::move(results[thread_num - 1]);
-	for (std::size_t i = 0; i < threads.size(); ++i)
+	T result_sum = std::move(init) + std::move(last_result);
+	for (std::size_t i = 0; i < futures.size(); ++i)
 	{
-		threads[i].join();
-		result_sum += std::move(results[i]);
+		result_sum += futures[i].get();
 	}
 
 	return result_sum;
@@ -84,39 +76,93 @@ T parallel_accumulate(ForwardIterator first, ForwardIterator last, T init)
 
 
 template<typename T>
-list<T> parallel_sort(list<T> input)
+struct sorter
 {
-	if (input.size() <= 1)
+	thread_pool pool;
+
+	std::list<T> sort(std::list<T> data)
+	{
+		if (data.empty())
+			return data;
+
+		std::list<T> result;
+		const T& pivot = *data.begin();
+		result.splice(result.end(), data, data.begin());
+		
+		auto divide_point = std::partition(data.begin(), data.end(),
+			[&](const T& item) {
+				return item < pivot;
+			});
+
+		std::list<T> lower_part;
+		lower_part.splice(lower_part.end(), data, data.begin(), divide_point);
+		std::future<std::list<T>> lower_future = 
+			pool.submit(std::move(std::bind(
+				&sorter::sort, this, std::move(lower_part))));
+		
+		data = sort(std::move(data));
+
+		while (lower_future.wait_for(std::chrono::seconds(0)) !=
+			std::future_status::ready) {
+			pool.run_task();
+		}
+
+		result.splice(result.begin(), lower_future.get());
+		result.splice(result.end(), data);
+
+		return result;
+	}
+};
+
+template<typename T>
+std::list<T> parallel_quick_sort(std::list<T> input)
+{
+	if (input.empty())
+	{
 		return input;
+	}
+	sorter<T> s;
 
-	list<T> result;
-	const T& pivot = *input.begin();
-	result.splice(result.end(), input, input.begin());
-
-	auto divide_point = std::partition(input.begin(), input.end(), 
-				[&](const T& item) {
-					return item < pivot;
-				});
-	list<T> lower_part;
-	lower_part.splice(lower_part.end(), input, input.begin(), divide_point);
-
-	std::future<list<T>> sorted_lower_part(std::async(
-		&parallel_sort<T>, std::move(lower_part)
-	));
-	
-	input = parallel_sort(std::move(input));
-
-	result.splice(result.end(), input);
-	result.splice(result.begin(), sorted_lower_part.get());
-
-	return result;
+	return s.sort(input);
 }
 
+
+template<typename ForwardIterator, typename Func>
+void parallel_for_each(ForwardIterator first, ForwardIterator last,
+	Func f)
+{
+	const std::size_t min_count_per_thread = 32;
+	const std::size_t count = std::distance(first, last);
+
+	if (count < 2 * min_count_per_thread)
+	{
+		std::for_each(first, last, f);
+		return;
+	}
+
+	ForwardIterator mid = first;
+	std::advance(mid, count / 2);
+
+	std::future<void> future = std::async(
+		&parallel_for_each<ForwardIterator, Func>, first, mid, f);
+
+	parallel_for_each(mid, last, f);
+	future.get();
+}
 
 
 
 int main()
 {	
+	srand(time(nullptr));
+	list<int> data;
+
+	for (int i = 0; i < 2000; ++i)
+		data.push_back(rand());
+
+	data = parallel_quick_sort(data);
+	for (auto item : data)
+		cout << item << endl;
 
 	return 0;
 }

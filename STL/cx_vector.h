@@ -97,9 +97,6 @@ void cx_vector<T, Alloc>::fill_initialize(
 			typename cx_vector<T, Alloc>::size_type n,
 			const T& value)
 {
-	if (n == 0)
-		n = 16;
-
 	start = Alloc::allocate(n);
 	finish = std::uninitialized_fill_n(start, n, value);
 	end_of_storage = finish;

@@ -159,8 +159,10 @@
     <ClInclude Include="cx_stack.h" />
     <ClInclude Include="cx_vector.h" />
     <ClInclude Include="free_list_allocator.h" />
+    <ClInclude Include="jthreads.h" />
     <ClInclude Include="malloc_allocator.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="thread_pool.h" />
     <ClInclude Include="thread_queue.h" />
     <ClInclude Include="thread_stack.h" />
   </ItemGroup>
