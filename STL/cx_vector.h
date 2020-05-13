@@ -16,8 +16,8 @@ public:
 	using const_iterator = const value_type *;
 	using reference = value_type & ;
 	using const_reference = const value_type&;
-	using size_type = std::size_t;
-	using difference_type = std::ptrdiff_t;
+	using difference_type = typename std::iterator_traits<iterator>::difference_type;
+	using size_type = difference_type;
 
 
 protected:
@@ -41,8 +41,6 @@ public:
 
 	cx_vector();
 	cx_vector(size_type n, const T& value) { fill_initialize(n, value); }
-	cx_vector(int n, const T& value) { fill_initialize(n, value); }
-	cx_vector(long n, const T& value) { fill_initialize(n, value); }
 	explicit cx_vector(std::initializer_list<T> list);
 	cx_vector(const cx_vector<T>& vec);
 	cx_vector(cx_vector<T>&& vec);
