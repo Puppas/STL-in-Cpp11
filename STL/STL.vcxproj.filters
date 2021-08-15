@@ -36,9 +36,6 @@
     <ClInclude Include="cx_list.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="cx_deque.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="cx_stack.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -51,10 +48,19 @@
     <ClInclude Include="thread_queue.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="jthreads.h">
+    <ClInclude Include="thread_pool.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="thread_pool.h">
+    <ClInclude Include="cx_shared_ptr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="cx_deque.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jthread.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="hierarchical_mutex.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

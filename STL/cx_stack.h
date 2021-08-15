@@ -13,11 +13,11 @@ public:
 
 public:
 	cx_stack() { container = Container(); }
-	explicit cx_stack(const container_type& con) { container = con; }
-	explicit cx_stack(container_type&& con) { 
+	cx_stack(const container_type& con) { container = con; }
+	cx_stack(container_type&& con) { 
 		container = std::move(con); 
 	}
-	explicit cx_stack(cx_stack&& stack) {
+	cx_stack(cx_stack&& stack) {
 		container = std::move(stack.container);
 	}
 
@@ -27,13 +27,14 @@ public:
 	}
 
 
-	bool empty() const { return container.empty(); }
-	size_type size() const { return container.size(); }
-	reference top() { return container.back(); }
+	bool empty() const noexcept { return container.empty(); }
+	size_type size() const noexcept { return container.size(); }
+	reference top(){ return container.back(); }
+	const_reference top() const { return container.back(); }
 	void push(const value_type& val) {  container.push_back(val); }
 	void pop() { container.pop_back(); }
 
-	void swap(cx_stack& stack) {
+	void swap(cx_stack& stack) noexcept{
 		this->container.swap(stack.container);
 	}
 

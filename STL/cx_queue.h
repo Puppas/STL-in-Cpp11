@@ -13,19 +13,17 @@ public:
 
 
 public:
-	cx_queue() {
-		container = container_type();
-	}
+	cx_queue() = default;
 
-	explicit cx_queue(const container_type& con) {
+	cx_queue(const container_type& con) {
 		container = con;
 	}
 
-	explicit cx_queue(container_type&& con) {
+	cx_queue(container_type&& con) {
 		container = std::move(con);
 	}
 	
-	explicit cx_queue(cx_queue&& queue) {
+	cx_queue(cx_queue&& queue) {
 		container = std::move(queue.container);
 	}
 
@@ -34,8 +32,8 @@ public:
 		return *this;
 	}
 
-	bool empty() const { return container.empty(); }
-	size_type size() const { return container.size(); }
+	bool empty() const noexcept { return container.empty(); }
+	size_type size() const noexcept { return container.size(); }
 	
 	reference front() { return container.front(); }
 	const_reference front() const { return container.front(); }

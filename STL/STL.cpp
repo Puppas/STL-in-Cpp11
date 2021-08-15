@@ -21,11 +21,12 @@
 #include "thread_pool.h"
 #include <cstdlib>
 #include <ctime>
+#include "cx_shared_ptr.h"
+#include <cstdio>
+#include <cstring>
+#include <chrono>
+#include "jthread.h"
 
-using namespace std;
-/*
-	在main中测试容器
-*/
 
 template<typename ForwardIterator, typename T>
 struct accumulate_block
@@ -55,7 +56,7 @@ T parallel_accumulate(ForwardIterator first, ForwardIterator last, T init)
 	{
 		ForwardIterator block_end = block_start + block_size;
 
-		futures[i] = pool.submit([=]() { 
+		futures[i] = pool.submit([=]() {
 			return accumulate_block<ForwardIterator, T>()(
 				block_start, block_end);
 		});
@@ -88,18 +89,18 @@ struct sorter
 		std::list<T> result;
 		const T& pivot = *data.begin();
 		result.splice(result.end(), data, data.begin());
-		
+
 		auto divide_point = std::partition(data.begin(), data.end(),
 			[&](const T& item) {
-				return item < pivot;
-			});
+			return item < pivot;
+		});
 
 		std::list<T> lower_part;
 		lower_part.splice(lower_part.end(), data, data.begin(), divide_point);
-		std::future<std::list<T>> lower_future = 
+		std::future<std::list<T>> lower_future =
 			pool.submit(std::move(std::bind(
 				&sorter::sort, this, std::move(lower_part))));
-		
+
 		data = sort(std::move(data));
 
 		while (lower_future.wait_for(std::chrono::seconds(0)) !=
@@ -151,21 +152,41 @@ void parallel_for_each(ForwardIterator first, ForwardIterator last,
 }
 
 
+using namespace std;
+
+
+template<typename T>
+auto& f(T& t)
+{
+	return t[1];
+}
+
+
+class A
+{
+public:
+	static const thread_local int x = 1;
+};
 
 int main()
-{	
-	srand(time(nullptr));
-	list<int> data;
-
-	for (int i = 0; i < 2000; ++i)
-		data.push_back(rand());
-
-	data = parallel_quick_sort(data);
-	for (auto item : data)
-		cout << item << endl;
+{
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

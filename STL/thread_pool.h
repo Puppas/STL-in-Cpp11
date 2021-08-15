@@ -1,9 +1,10 @@
 #pragma once
+
 #include <utility>
 #include <memory>
 #include "thread_queue.h"
 #include <atomic>
-#include "jthreads.h"
+#include "jthread.h"
 #include <future>
 #include <queue>
 #include <deque>
@@ -19,17 +20,21 @@ private:
 		virtual ~impl_base() {}
 	};
 
-	template<typename Function>
+	template<typename Function, typename... Args>
 	class wrapper_impl: public impl_base
 	{
-	private:
-		Function f;
 	public:
-		wrapper_impl(Function&& f): f(std::move(f)) 
+		using bind_type = decltype(std::bind(std::declval<Function>(),
+			std::declval<Args>()...));
+	private:
+		bind_type bind_function;
+	public:
+		wrapper_impl(Function&& f, Args&&... args): 
+			bind_function(std::forward<Function>(f), std::forward<Args>(args)...) 
 		{}
 
 		void call() {
-			f();
+			bind_function();
 		}
 	};
 
@@ -38,17 +43,18 @@ private:
 public:
 	function_wrapper() = default;
 
-	template<typename Function>
-	function_wrapper(Function&& f):
-		pimpl(new wrapper_impl<Function>(std::move(f)))
+	template<typename Function, typename... Args>
+	function_wrapper(Function&& f, Args&&... args):
+		pimpl(new wrapper_impl<Function, Args...>(
+			std::forward<Function>(f), std::forward<Args>(args)...))
 	{}
 
-	function_wrapper(const function_wrapper&) = default;
-	function_wrapper& operator=(const function_wrapper&) = default;
+	function_wrapper(const function_wrapper&) = delete;
+	function_wrapper& operator=(const function_wrapper&) = delete;
 
-	function_wrapper(function_wrapper&& other):
+	function_wrapper(function_wrapper&& other) noexcept:
 		pimpl(std::move(other.pimpl)) {}
-	function_wrapper& operator=(function_wrapper&& other) {
+	function_wrapper& operator=(function_wrapper&& other) noexcept {
 		pimpl = std::move(other.pimpl);
 		return *this;
 	}
@@ -69,7 +75,7 @@ public:
 	task_steal_queue() = default;
 	task_steal_queue(const task_steal_queue&) = delete;
 	task_steal_queue& operator=(const task_steal_queue&) = delete;
-
+	
 	void push(function_wrapper f) {
 		std::lock_guard<std::mutex> lock(queue_mutex);
 		queue.push_front(std::move(f));
@@ -110,14 +116,12 @@ public:
 class thread_pool
 {
 private:
-	std::atomic<bool> done;
+	std::atomic_bool done;
 	thread_queue<function_wrapper> global_task_queue;
 
 	std::vector<std::unique_ptr<task_steal_queue>>
 		local_task_queue_vec;
-
-	std::vector<std::thread> threads;
-	jthreads joiner;
+	std::vector<jthread> threads;
 
 	static thread_local task_steal_queue*
 		local_task_queue_ptr;
@@ -144,29 +148,22 @@ public:
 		done = true;
 	}
 
-	template<typename Function>
-	std::future<typename std::result_of<Function()>::type>
-	submit(Function f);
+	template<typename Function, typename... Args>
+	std::future<std::invoke_result_t<Function, Args...>>
+	submit(Function&& f, Args&&... args);
 
 	void run_task();
 };
 
 
-thread_local task_steal_queue*
-thread_pool::local_task_queue_ptr = nullptr;
-
-thread_local std::size_t thread_pool::queue_index = -1;
-
 
 bool thread_pool::pop_task_from_other_queue(
 	function_wrapper& task)
 {
-	std::size_t index;
 	std::size_t vec_size = local_task_queue_vec.size();
-
 	for (std::size_t i = 0; i < vec_size; ++i)
 	{
-		index = (queue_index + i + 1) % vec_size;
+		std::size_t index = (queue_index + i + 1) % vec_size;
 		if (local_task_queue_vec[index]->try_steal(task))
 			return true;
 	}
@@ -186,7 +183,7 @@ void thread_pool::thread_work(std::size_t index)
 	}
 }
 
-thread_pool::thread_pool() : done(false), joiner(threads)
+thread_pool::thread_pool() : done(false)
 {
 	const std::size_t thread_count = std::thread::hardware_concurrency();
 
@@ -196,11 +193,8 @@ thread_pool::thread_pool() : done(false), joiner(threads)
 			local_task_queue_vec.push_back(
 				std::unique_ptr<task_steal_queue>(
 					new task_steal_queue));
-		}
-
-		for (std::size_t i = 0; i < thread_count; ++i)
-		{
-			threads.push_back(std::thread(
+		
+			threads.push_back(jthread(
 				&thread_pool::thread_work, this, i));
 		}
 	}
@@ -210,17 +204,17 @@ thread_pool::thread_pool() : done(false), joiner(threads)
 	}
 }
 
-template<typename Function>
-std::future<typename std::result_of<Function()>::type>
-thread_pool::submit(Function f)
+template<typename Function, typename... Args>
+std::future<std::invoke_result_t<Function, Args...>>
+thread_pool::submit(Function&& f, Args&&... args)
 {
-	using result_type = typename std::result_of<Function()>::type;
+	using result_type = std::invoke_result_t<Function, Args...>;
 
-	std::packaged_task<result_type()> task(std::move(f));
+	std::packaged_task<result_type(Args...)> task(
+		std::forward<Function>(f), std::forward<Args>(args)...);
 	std::future<result_type> result = task.get_future();
 
-	if (local_task_queue_ptr &&
-		local_task_queue_ptr->size() < 10) {
+	if (local_task_queue_ptr) {
 		local_task_queue_ptr->push(std::move(task));
 	}
 	else {
@@ -244,3 +238,9 @@ void thread_pool::run_task()
 		std::this_thread::yield();
 	}
 }
+
+
+thread_local task_steal_queue*
+thread_pool::local_task_queue_ptr = nullptr;
+
+thread_local std::size_t thread_pool::queue_index = -1;

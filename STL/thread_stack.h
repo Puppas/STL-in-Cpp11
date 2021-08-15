@@ -5,11 +5,18 @@
 #include <stack>
 
 
-template<typename T>
+template<typename T, typename Container = cx_deque<T>>
 class thread_stack
 {
+public:
+	using value_type = T;
+	using container_type = Container;
+	using reference = T&;
+	using const_reference = const reference;
+	using size_type = std::size_t;
+
 private:
-    cx_stack<T> stack;
+    cx_stack<T, Container> stack;
 	mutable std::recursive_mutex stack_mutex;
 	
 
@@ -24,44 +31,51 @@ public:
 	thread_stack& operator=(const thread_stack& other) = delete;
 
 
-	void push(const T& val) {
+	void push(T val) {
 		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
-		stack.push(val);
+		stack.push(std::move(val));
 	}
 
-	void push(T&& val) {
-		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
-		stack.push(std::forward<T>(val));
-
-	}
-
-	bool empty() const {
+	bool empty() const{
 		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		return stack.empty();
+	}
+
+	size_type size() const{
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
+		return stack.size();
+	}
+
+	reference top() {
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
+		return stack.top();
+	}
+
+	const_reference top() const {
+		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
+		return stack.top();
 	}
 
 	std::shared_ptr<T> pop() {
 		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		if (empty()) {
-			return std::shared_ptr<T>();
+			throw std::exception("pop when stack is empty");
 		}
 
 		std::shared_ptr<T> ptr = 
 			std::make_shared<T>(std::move(stack.top()));
-		
 		stack.pop();
 		return ptr;
 	}
 
-	bool pop(T& val) {
+	void pop(T& val) {
 		std::lock_guard<std::recursive_mutex> lock(stack_mutex);
 		if (empty()) {
-			return false;
+			throw std::exception("pop when stack is empty");
 		}
 
 		val = std::move(stack.top());
 		stack.pop();
-		return true;
 	}
 };
 
