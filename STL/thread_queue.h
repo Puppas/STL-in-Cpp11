@@ -27,7 +27,7 @@ private:
 	mutable std::mutex size_mutex;
 	std::condition_variable data_cond;
 
-	std::unique_ptr<node> pop_head() noexcept;	
+	std::unique_ptr<node> pop_head();	
 	std::unique_lock<std::mutex> wait_for_data();
 	void inc_size();
 	void dec_size();
@@ -83,7 +83,7 @@ void thread_queue<T>::push(T val)
 
 template<typename T>
 std::unique_ptr<typename thread_queue<T>::node>
-thread_queue<T>::pop_head() noexcept
+thread_queue<T>::pop_head()
 {
 	std::unique_ptr<node> old_head = std::move(head);
 	head = std::move(old_head->next);

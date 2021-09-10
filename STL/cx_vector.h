@@ -29,20 +29,20 @@ protected:
 	void fill_initialize(size_type n, const T& value);
 	
 public:
-	iterator begin() const noexcept { return start; }
-	iterator end() const noexcept { return finish; }
+	iterator begin() noexcept { return start; }
+	iterator end() noexcept { return finish; }
 	const_iterator cbegin() const noexcept { return start; }
 	const_iterator cend() const noexcept { return finish; }
 
 	size_type size() const noexcept { return finish - start; }
 	size_type capacity() const noexcept { return end_of_storage - start; }
 	bool empty() const noexcept { return start == finish; }
-	reference operator[](size_type n) noexcept{ return *(start + n); }
-	const_reference operator[](size_type n) const noexcept { return *(start + n); }
+	reference operator[](size_type n) { return *(start + n); }
+	const_reference operator[](size_type n) const { return *(start + n); }
 
 	cx_vector();
 	cx_vector(size_type n, const T& value) { fill_initialize(n, value); }
-	explicit cx_vector(const std::initializer_list<T>& list);
+	explicit cx_vector(std::initializer_list<T> list);
 	cx_vector(const cx_vector<T>& vec);
 	cx_vector(cx_vector<T>&& vec) noexcept;
 	explicit cx_vector(size_type n) { fill_initialize(n, T()); }
@@ -57,22 +57,28 @@ public:
 	}
 
 	~cx_vector() noexcept  {
+		if (!start)
+			return;
 		alloc::destroy(start, finish);
 		Alloc::deallocate(start, end_of_storage - start);
 	}
 
-	reference front() noexcept { return *start; }
-	const_reference front() const noexcept { return *start; }
-	reference back() noexcept { return *(finish - 1); }
-	const_reference back() const noexcept { return *(finish - 1); }
+	reference front() { return *start; }
+	const_reference front() const { return *start; }
+	reference back() { return *(finish - 1); }
+	const_reference back() const { return *(finish - 1); }
 
-	void push_back(const T& value);
-	void pop_back() noexcept;
-	iterator erase(iterator pos) noexcept;
-	iterator erase(iterator beg, iterator end) noexcept;
+	void push_back(const T& val) { insert(finish, val); }
+	void push_back(T&& val) { insert(finish, std::forward<T>(val)); }
+	void pop_back();
+	iterator erase(iterator pos);
+	iterator erase(iterator beg, iterator end);
 	void clear() noexcept { erase(start, finish); }
 
 	iterator insert(iterator pos, size_type n, const T& value);
+	iterator insert(iterator pos, const T& val) { return insert(pos, 1, val); }
+	iterator insert(iterator pos, T&& val);
+
 
 	friend bool operator==<>(const cx_vector& lhs, 
 							 const cx_vector& rhs);
@@ -103,10 +109,10 @@ void cx_vector<T, Alloc>::fill_initialize(
 
 
 template<typename T, typename Alloc>
-cx_vector<T, Alloc>::cx_vector(const std::initializer_list<T>& list)
+cx_vector<T, Alloc>::cx_vector(std::initializer_list<T> list)
 {
 	start = Alloc::allocate(list.size());
-	finish = std::uninitialized_copy(list.begin(), list.end(), start);
+	finish = std::uninitialized_move(list.begin(), list.end(), start);
 	end_of_storage = finish;
 }
 
@@ -161,16 +167,8 @@ cx_vector<T, Alloc>::operator=(cx_vector<T>&& vec) noexcept
 }
 
 
-
 template<typename T, typename Alloc>
-void cx_vector<T, Alloc>::push_back(const T& value)
-{
-	insert(finish, 1, value);
-}
-
-
-template<typename T, typename Alloc>
-void cx_vector<T, Alloc>::pop_back() noexcept
+void cx_vector<T, Alloc>::pop_back()
 {
 	--finish;
 	alloc::destroy(finish);
@@ -179,7 +177,7 @@ void cx_vector<T, Alloc>::pop_back() noexcept
 
 template<typename T, typename Alloc>
 typename cx_vector<T, Alloc>::iterator
-cx_vector<T, Alloc>::erase(typename cx_vector<T, Alloc>::iterator pos) noexcept
+cx_vector<T, Alloc>::erase(typename cx_vector<T, Alloc>::iterator pos)
 {
 	return erase(pos, pos + 1);
 }
@@ -189,7 +187,7 @@ cx_vector<T, Alloc>::erase(typename cx_vector<T, Alloc>::iterator pos) noexcept
 template<typename T, typename Alloc>
 typename cx_vector<T, Alloc>::iterator
 cx_vector<T, Alloc>::erase(typename cx_vector<T, Alloc>::iterator beg,
-						   typename cx_vector<T, Alloc>::iterator end) noexcept
+						   typename cx_vector<T, Alloc>::iterator end)
 {
 	if (end != finish)
 	{
@@ -235,6 +233,42 @@ cx_vector<T, Alloc>::insert(typename cx_vector<T, Alloc>::iterator pos,
 		new_finish = std::uninitialized_fill_n(new_finish, n, value);
 		new_finish = std::uninitialized_move(pos, finish, new_finish);
 		
+		alloc::destroy(start, finish);
+		Alloc::deallocate(start, old_size);
+
+		start = new_start;
+		finish = new_finish;
+		end_of_storage = start + new_size;
+	}
+
+	return pos;
+}
+
+
+template<typename T, typename Alloc>
+typename cx_vector<T, Alloc>::iterator
+cx_vector<T, Alloc>::insert(typename cx_vector<T, Alloc>::iterator pos, T&& val)
+{
+	if (end_of_storage - finish >= 1)
+	{
+		if (pos != finish) {
+			std::uninitialized_move(finish - 1, finish, finish);
+			std::move(pos, finish - 1, pos + 1);
+		}
+		alloc::construct(pos, std::forward<T>(val));
+		finish += 1;
+	}
+	else
+	{
+		size_type old_size = size();
+		size_type new_size = old_size * 2;
+
+		iterator new_start = Alloc::allocate(new_size);
+		iterator new_finish = std::uninitialized_move(start, pos, new_start);
+		alloc::construct(new_finish, std::forward<T>(val));
+		new_finish += 1;
+		new_finish = std::uninitialized_move(pos, finish, new_finish);
+
 		alloc::destroy(start, finish);
 		Alloc::deallocate(start, old_size);
 

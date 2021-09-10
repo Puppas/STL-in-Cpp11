@@ -27,32 +27,32 @@ public:
 		map_pointer node;
 		size_type buf_size = sizeof(U) >= 128 ? 1 : 128 / sizeof(U);
 
-		deque_iterator() : cur(nullptr), first(nullptr),
+		deque_iterator() noexcept: cur(nullptr), first(nullptr),
 			last(nullptr), node(nullptr) {}
 		deque_iterator(pointer cur, pointer first, pointer last,
 			map_pointer node) : cur(cur), first(first),
 			last(last), node(node) {}
 
 
-		bool operator==(const iterator& iter) const
+		bool operator==(const iterator& iter) const noexcept
 		{
 			return cur == iter.cur;
 		}
-		bool operator!=(const iterator& iter) const
+		bool operator!=(const iterator& iter) const noexcept
 		{
 			return cur != iter.cur;
 		}
-		bool operator<(const iterator& iter) const
+		bool operator<(const iterator& iter) const noexcept
 		{
 			return node == iter.node ? cur < iter.cur : node < iter.node;
 		}
-		bool operator>(const iterator& iter) const
+		bool operator>(const iterator& iter) const noexcept
 		{
 			return node == iter.node ? cur > iter.cur : node > iter.node;
 		}
 
-		reference operator*() { return *cur; }
-		pointer operator->() { return this->cur; }
+		reference operator*() const noexcept { return *cur; }
+		pointer operator->() const noexcept { return this->cur; }
 
 
 		template<typename I>
@@ -73,7 +73,7 @@ public:
 			return iter;
 		}
 
-		iterator operator-(size_type n)
+		iterator operator-(size_type n) const
 		{
 			iterator tmp = *this;
 
@@ -130,7 +130,7 @@ public:
 			return tmp;
 		}
 
-		void clear()
+		void clear() noexcept
 		{
 			cur = nullptr;
 			first = nullptr;
@@ -148,13 +148,13 @@ public:
 		using pointer = Ptr;
 		using reference = Ref;
 		using difference_type = std::ptrdiff_t;
-		using map_pointer = pointer * ;
+		using map_pointer = U** ;
 		using size_type = std::size_t;
 
 		const U *cur;
 		const U *first;          //当前缓冲区第一个元素
 		const U *last;		//当前缓冲区最后元素的下一位置
-		const U* const *node;
+		map_pointer node;
 		size_type buf_size = sizeof(U) >= 128 ? 1 : 128 / sizeof(U);
 
 		deque_const_iterator() : cur(nullptr), first(nullptr),
@@ -177,25 +177,25 @@ public:
 		}
 
 
-		bool operator==(const iterator& iter) const
+		bool operator==(const iterator& iter) const noexcept
 		{
 			return cur == iter.cur;
 		}
-		bool operator!=(const iterator& iter) const
+		bool operator!=(const iterator& iter) const noexcept
 		{
 			return cur != iter.cur;
 		}
-		bool operator<(const iterator& iter) const
+		bool operator<(const iterator& iter) const noexcept
 		{
 			return node == iter.node ? cur < iter.cur : node < cur.node;
 		}
-		bool operator>(const iterator& iter) const
+		bool operator>(const iterator& iter) const noexcept
 		{
 			return node == iter.node ? cur > iter.cur : node > cur.node;
 		}
 
-		reference operator*() const { return *cur; }
-		pointer operator->() const { return this->cur; }
+		reference operator*() const noexcept { return *cur; }
+		pointer operator->() const noexcept { return this->cur; }
 
 		template<typename I>
 		friend deque_const_iterator<I>
@@ -215,7 +215,7 @@ public:
 			return iter;
 		}
 
-		iterator operator-(size_type n)
+		iterator operator-(size_type n) const
 		{
 			iterator tmp = *this;
 
@@ -274,7 +274,7 @@ public:
 			return tmp;
 		}
 
-		void clear()
+		void clear() noexcept
 		{
 			cur = nullptr;
 			first = nullptr;
@@ -300,15 +300,15 @@ public:
 	explicit cx_deque(size_type n, const value_type& value = value_type());
 	explicit cx_deque(std::initializer_list<value_type> list);
 	cx_deque(const cx_deque<T>& deq);
-	cx_deque(cx_deque<T>&& deq);
+	cx_deque(cx_deque<T>&& deq) noexcept;
 	cx_deque<T, Alloc>& operator=(const cx_deque<T>& deq);
-	cx_deque<T, Alloc>& operator=(cx_deque<T>&& deq);
-	~cx_deque();
+	cx_deque<T, Alloc>& operator=(cx_deque<T>&& deq) noexcept;
+	~cx_deque() noexcept;
 
-	iterator begin() const { return start; }
-	iterator end() const { return finish; }
-	const_iterator cbegin() const { return start; }
-	const_iterator cend() const { return finish; }
+	iterator begin() noexcept { return start; }
+	iterator end() noexcept { return finish; }
+	const_iterator cbegin() const noexcept { return start; }
+	const_iterator cend() const noexcept { return finish; }
 	
 	reference operator[](size_type n) { return *(start + n); }
 	const_reference operator[](size_type n) const { return *(start + n); }
@@ -317,18 +317,19 @@ public:
 	reference back() { return *(finish - 1); }
 	const_reference back() const { return *(finish - 1); }
 	
-	void swap(cx_deque<T>& deq);
+	void swap(cx_deque<T>& deq) noexcept;
 	template<typename U>
 	friend void swap(cx_deque<U>& ls, cx_deque<U>& rs) { ls.swap(rs); }
 
-	size_type size() const;
-	size_type max_size() const { return (size_type)(-1); }
-	bool empty() const { return start == finish; }
-	void clear();
+	size_type size() const noexcept { return finish - start; };
+	size_type max_size() const noexcept { return (size_type)(-1); }
+	bool empty() const noexcept { return start == finish; }
+	void clear() noexcept;
 
 	void push_back(const value_type& val);
 	void push_back(value_type&& val);
 	void push_front(const value_type& val);
+	void push_front(value_type&& val);
 	void pop_back();
 	void pop_front();
 
@@ -388,7 +389,7 @@ template<typename T, typename Alloc>
 cx_deque<T, Alloc>::cx_deque(std::initializer_list<T> list)
 {
 	create_map(list.size());
-	finish = std::uninitialized_copy(list.begin(), list.end(), start);
+	finish = std::uninitialized_move(list.begin(), list.end(), start);
 }
 
 template<typename T, typename Alloc>
@@ -399,7 +400,7 @@ cx_deque<T, Alloc>::cx_deque(const cx_deque<T>& deq)
 }
 
 template<typename T, typename Alloc>
-cx_deque<T, Alloc>::cx_deque(cx_deque<T>&& deq)
+cx_deque<T, Alloc>::cx_deque(cx_deque<T>&& deq) noexcept
 {
 	start = deq.start;
 	finish = deq.finish;
@@ -412,7 +413,7 @@ cx_deque<T, Alloc>::cx_deque(cx_deque<T>&& deq)
 
 template<typename T, typename Alloc>
 cx_deque<T, Alloc>&
-cx_deque<T, Alloc>::operator=(cx_deque<T>&& deq)
+cx_deque<T, Alloc>::operator=(cx_deque<T>&& deq) noexcept
 {
 	swap(deq);
 	return *this;
@@ -429,8 +430,11 @@ cx_deque<T, Alloc>::operator=(const cx_deque<T>& deq)
 
 
 template<typename T, typename Alloc>
-cx_deque<T, Alloc>::~cx_deque()
+cx_deque<T, Alloc>::~cx_deque() noexcept
 {
+	if (!map)
+		return;
+
 	alloc::destroy(start, finish);
 
 	for (map_pointer map_ptr = start.node; map_ptr <= finish.node; 
@@ -506,7 +510,7 @@ void cx_deque<T, Alloc>::reallocate_map(size_type node_to_add,
 			finish.node = start.node + old_node_num - 1;
 		}
 		else {
-			std::copy_backward(start.node, finish.node, finish_ptr + 1);
+			std::copy_backward(start.node, finish.node + 1, finish_ptr + 1);
 			start.node = finish_ptr - old_node_num + 1;
 			finish.node = finish_ptr;
 		}
@@ -518,23 +522,16 @@ void cx_deque<T, Alloc>::reallocate_map(size_type node_to_add,
 
 
 template<typename T, typename Alloc>
-void cx_deque<T, Alloc>::swap(cx_deque<T>& deq)
+void cx_deque<T, Alloc>::swap(cx_deque<T>& deq) noexcept
 {
-	using std::swap;
-	swap(start, deq.start);
-	swap(finish, deq.finish);
-	swap(map, deq.map);	
+	std::swap(start, deq.start);
+	std::swap(finish, deq.finish);
+	std::swap(map, deq.map);	
 }
 
-template<typename T, typename Alloc>
-typename cx_deque<T, Alloc>::size_type 
-cx_deque<T, Alloc>::size() const
-{
-	return finish - start;
-}
 
 template<typename T, typename Alloc>
-void cx_deque<T, Alloc>::clear()
+void cx_deque<T, Alloc>::clear() noexcept
 {
 	alloc::destroy(start, finish);
 
@@ -616,6 +613,29 @@ void cx_deque<T, Alloc>::push_front(const value_type& val)
 
 
 template<typename T, typename Alloc>
+void cx_deque<T, Alloc>::push_front(value_type&& val)
+{
+	if (start.cur > start.first)
+	{
+		--start.cur;
+		alloc::construct(start.cur, std::forward<value_type>(val));
+	}
+	else
+	{
+		if (start.node == map) {
+			reallocate_map(1, true);
+		}
+
+		map_pointer prev_node = start.node - 1;
+		*prev_node = Alloc::allocate(buf_size);
+		--start;
+		alloc::construct(start.cur, val);
+	}
+}
+
+
+
+template<typename T, typename Alloc>
 void cx_deque<T, Alloc>::pop_back()
 {
 	if (finish.cur != finish.first)
@@ -653,18 +673,7 @@ template<typename T, typename Alloc>
 typename cx_deque<T, Alloc>::iterator
 cx_deque<T, Alloc>::erase(iterator pos)
 {
-	if (finish - pos < pos - start)
-	{
-		std::copy(pos + 1, finish, pos);
-		pop_back();
-		return pos;
-	}
-	else
-	{
-		std::move_backward(start, pos, pos + 1);
-		pop_front();
-		return pos + 1;
-	}
+	return erase(pos, pos + 1);
 }
 
 

@@ -155,23 +155,19 @@ void parallel_for_each(ForwardIterator first, ForwardIterator last,
 using namespace std;
 
 
-template<typename T>
-auto& f(T& t)
-{
-	return t[1];
-}
 
 
-class A
-{
-public:
-	static const thread_local int x = 1;
-};
 
 int main()
 {
-
-	return 0;
+	cx_deque<int> data({ 1,2,0,4 });
+	for (int i = 0; i < 1000; ++i) {
+		data.push_back(i);
+		data.push_front(i - 1000);
+	}
+	for (auto iter = data.cbegin(); iter != data.cend(); ++iter)
+		cout << *iter << endl;
+ 	return 0;
 }
 
 
