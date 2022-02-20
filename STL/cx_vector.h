@@ -16,10 +16,11 @@ public:
 	using const_iterator = const value_type *;
 	using reference = value_type & ;
 	using const_reference = const value_type&;
-	using difference_type = typename std::iterator_traits<iterator>::difference_type;
-	using size_type = difference_type;
+	using difference_type = std::ptrdiff_t;
+	using size_type = std::size_t;
+	using allocator_type = Alloc;
 
-	static const std::size_t INIT_SIZE = 16;
+	static constexpr std::size_t INIT_SIZE = 16;
 
 protected:
 	iterator start;    //目前使用空间的头
@@ -56,7 +57,7 @@ public:
 		ls.swap(rs);
 	}
 
-	~cx_vector() noexcept  {
+	~cx_vector() noexcept{
 		if (!start)
 			return;
 		alloc::destroy(start, finish);
@@ -212,7 +213,7 @@ cx_vector<T, Alloc>::insert(typename cx_vector<T, Alloc>::iterator pos,
 
 		if (elem_after > n) {
 			std::uninitialized_move(finish - n, finish, finish);
-			std::move(pos, finish - n, pos + n);
+			std::move_backward(pos, finish - n, finish);
 			std::fill_n(pos, n, value);
 			finish += n;
 		}
@@ -253,7 +254,7 @@ cx_vector<T, Alloc>::insert(typename cx_vector<T, Alloc>::iterator pos, T&& val)
 	{
 		if (pos != finish) {
 			std::uninitialized_move(finish - 1, finish, finish);
-			std::move(pos, finish - 1, pos + 1);
+			std::move_backward(pos, finish - 1, finish);
 		}
 		alloc::construct(pos, std::forward<T>(val));
 		finish += 1;

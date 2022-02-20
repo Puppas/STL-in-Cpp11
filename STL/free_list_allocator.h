@@ -7,9 +7,9 @@ template<typename T>
 class free_list_allocator
 {
 private:
-	static const std::size_t ALIGN = 8;
-	static const std::size_t MAX_BLOCK_SIZE = 128;
-	static const std::size_t FREE_LIST_NUM = MAX_BLOCK_SIZE / ALIGN;
+	static constexpr std::size_t ALIGN = 8;
+	static constexpr std::size_t MAX_BLOCK_SIZE = 128;
+	static constexpr std::size_t FREE_LIST_NUM = MAX_BLOCK_SIZE / ALIGN;
 
 	struct obj
 	{
@@ -25,13 +25,13 @@ private:
 
 
 	//将byte上调至8的倍数
-	static std::size_t round_up(std::size_t byte)
+	static std::size_t round_up(std::size_t byte) noexcept
 	{
 		return ((byte) + ALIGN - 1) & ~(ALIGN - 1);
 	}
 
 	//由所需内存大小决定free_list的索引
-	static std::size_t free_list_index(std::size_t byte)
+	static std::size_t free_list_index(std::size_t byte) noexcept
 	{
 		return  byte / (ALIGN + 1);
 	}
@@ -51,7 +51,7 @@ public:
 	free_list_allocator(const free_list_allocator<U>&) {}
 
 	static T *allocate(std::size_t num);
-	static void deallocate(T *p, std::size_t num);
+	static void deallocate(T *p, std::size_t num) noexcept;
 };
 
 
@@ -94,10 +94,10 @@ T *free_list_allocator<T>::allocate(std::size_t num)
 
 
 template<typename T>
-void free_list_allocator<T>::deallocate(T *p, std::size_t num)
+void free_list_allocator<T>::deallocate(T *p, std::size_t num) noexcept
 {
 	/*
-	p为需要回收的内存区域的首指针，num代表区域内元素的个数
+      p为需要回收的内存区域的首指针，num代表区域内元素的个数
 	*/
 
 	std::size_t size = num * sizeof(T);

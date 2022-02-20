@@ -26,10 +26,10 @@ public:
 
 	static T *allocate(std::size_t num);
 	static T *reallocate(T *p, std::size_t num);
-	static void deallocate(T *p, std::size_t num);
+	static void deallocate(T *p, std::size_t num) noexcept;
 
 
-	void (*set_oom_handler(void (*handler)()))();
+	void (*set_oom_handler(void (*handler)()))() noexcept;
 };
 
 
@@ -62,13 +62,13 @@ T *malloc_allocator<T>::reallocate(T *p, std::size_t num)
 
 
 template<typename T>
-void malloc_allocator<T>::deallocate(T *p, std::size_t num) 
+void malloc_allocator<T>::deallocate(T *p, std::size_t num) noexcept
 {
 	free(p);
 }
 
 template<typename T>
-void (*malloc_allocator<T>::set_oom_handler(void (*handler)()))()
+void (*malloc_allocator<T>::set_oom_handler(void (*handler)()))() noexcept
 {
 	auto old_handler = oom_handler;
 	oom_handler = handler;

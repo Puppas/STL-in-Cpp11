@@ -2,6 +2,13 @@
 #include <type_traits>
 
 namespace alloc {
+
+	template<typename T1, typename T2>
+	void construct(T1* p, const T2& value)
+	{
+		new (p) T1(value);
+	}
+
 	template<typename T1, typename T2>
 	void construct(T1 *p, T2&& value)
 	{
@@ -9,7 +16,7 @@ namespace alloc {
 	}
 
 	template<typename T>
-	void destroy(T *p)
+	void destroy(T *p) noexcept
 	{
 		p->~T();
 	}
@@ -22,7 +29,8 @@ namespace alloc {
 
 
 	template<typename ForwardIterator>
-	void aux_destroy(ForwardIterator begin, ForwardIterator end, std::false_type)
+	void aux_destroy(ForwardIterator begin, ForwardIterator end, 
+					 std::false_type) noexcept
 	{
 		for (; begin != end; ++begin) {
 			destroy(&*begin);
@@ -31,11 +39,10 @@ namespace alloc {
 
 
 	template<typename ForwardIterator>
-	void destroy(ForwardIterator begin, ForwardIterator end)
+	void destroy(ForwardIterator begin, ForwardIterator end) noexcept
 	{
 		aux_destroy(begin, end, std::is_trivially_destructible<decltype(*begin)>());
 	}
-
 }
 
 

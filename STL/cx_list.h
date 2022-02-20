@@ -127,8 +127,6 @@ protected:
 		}
 	};
 
-
-
 public:
 	using value_type = T;
 	using pointer = value_type * ;
@@ -138,7 +136,8 @@ public:
 	using const_reference = const reference;
 	using size_type = std::size_t;
 	using difference_type = std::ptrdiff_t;
-
+	using allocator_type = Alloc;
+	
 
 public:
 	cx_list();

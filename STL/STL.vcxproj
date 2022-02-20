@@ -161,9 +161,11 @@
     <ClInclude Include="cx_vector.h" />
     <ClInclude Include="free_list_allocator.h" />
     <ClInclude Include="hierarchical_mutex.h" />
+    <ClInclude Include="iterator.h" />
     <ClInclude Include="jthread.h" />
     <ClInclude Include="malloc_allocator.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="rb_tree.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="thread_queue.h" />
     <ClInclude Include="thread_stack.h" />

@@ -6,6 +6,7 @@ class Deleter
 {
 public:
 	void operator()(T *p) {
+		std::cout << "asd" << std::endl;
 		delete p;
 	}
 };

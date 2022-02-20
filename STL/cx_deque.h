@@ -144,7 +144,7 @@ public:
 	{
 		using iterator = deque_const_iterator<U, Ref, Ptr>;
 		using iterator_category = std::random_access_iterator_tag;
-		using value_type = const U;
+		using value_type = U;
 		using pointer = Ptr;
 		using reference = Ref;
 		using difference_type = std::ptrdiff_t;
@@ -164,16 +164,17 @@ public:
 			map_pointer node) : cur(cur), first(first),
 			last(last), node(node) {}
 		
-		deque_const_iterator(const deque_iterator<U>& iter):
+		deque_const_iterator(deque_iterator<U> iter):
 			cur(iter.cur), first(iter.first), last(iter.last),
 			node(iter.node) {}
 		
-		deque_const_iterator& operator=(const deque_iterator<U>& iter)
+		deque_const_iterator& operator=(deque_iterator<U> iter)
 		{
 			cur = iter.cur;
 			first = iter.first;
 			last = iter.last;
 			node = iter.node;
+			return *this;
 		}
 
 
@@ -291,6 +292,7 @@ public:
 	using iterator = deque_iterator<T>;
 	using const_iterator = deque_const_iterator<T>;
 	using const_reference = const reference;
+	using allocator_type = Alloc;
 	
 protected:
 	using map_pointer = pointer * ;
@@ -322,7 +324,6 @@ public:
 	friend void swap(cx_deque<U>& ls, cx_deque<U>& rs) { ls.swap(rs); }
 
 	size_type size() const noexcept { return finish - start; };
-	size_type max_size() const noexcept { return (size_type)(-1); }
 	bool empty() const noexcept { return start == finish; }
 	void clear() noexcept;
 
@@ -337,6 +338,7 @@ public:
 	iterator erase(iterator beg, iterator end);
 
 	iterator insert(iterator pos, const value_type& val);
+	iterator insert(iterator pos, value_type&& val);
 
 	friend bool operator==<>(const cx_deque& lhs, 
 							 const cx_deque& rhs);
@@ -478,7 +480,7 @@ void cx_deque<T, Alloc>::reallocate_map(size_type node_to_add,
 	size_type old_node_num = finish.node - start.node + 1;
 	size_type new_node_num = old_node_num + node_to_add;
 	map_pointer start_ptr, finish_ptr;
-
+	
 	if (map_size > 2 * new_node_num)
 	{
 		start_ptr = map + (map_size - new_node_num) / 2;
@@ -490,8 +492,7 @@ void cx_deque<T, Alloc>::reallocate_map(size_type node_to_add,
 			finish.node = start.node + old_node_num - 1;
 		}
 		else {
-			std::copy_backward(start.node, finish.node + 1, finish_ptr + 1);
-			start.node = finish_ptr - old_node_num + 1;
+			start.node = std::copy_backward(start.node, finish.node + 1, finish_ptr + 1);
 			finish.node = finish_ptr;
 		}
 	}
@@ -510,8 +511,7 @@ void cx_deque<T, Alloc>::reallocate_map(size_type node_to_add,
 			finish.node = start.node + old_node_num - 1;
 		}
 		else {
-			std::copy_backward(start.node, finish.node + 1, finish_ptr + 1);
-			start.node = finish_ptr - old_node_num + 1;
+			start.node = std::copy_backward(start.node, finish.node + 1, finish_ptr + 1);
 			finish.node = finish_ptr;
 		}
 		
@@ -552,7 +552,7 @@ void cx_deque<T, Alloc>::push_back(const value_type& val)
 	if (finish.cur < finish.last - 1)
 	{
 		alloc::construct(finish.cur, val);
-		++finish.cur;
+		++finish;
 	}
 	else 
 	{
@@ -574,7 +574,7 @@ void cx_deque<T, Alloc>::push_back(value_type&& val)
 	if (finish.cur < finish.last - 1)
 	{
 		alloc::construct(finish.cur, std::forward<T>(val));
-		++finish.cur;
+		++finish;
 	}
 	else
 	{
@@ -595,7 +595,7 @@ void cx_deque<T, Alloc>::push_front(const value_type& val)
 {
 	if (start.cur > start.first)
 	{
-		--start.cur;
+		--start;
 		alloc::construct(start.cur, val);
 	}
 	else
@@ -617,7 +617,7 @@ void cx_deque<T, Alloc>::push_front(value_type&& val)
 {
 	if (start.cur > start.first)
 	{
-		--start.cur;
+		--start;
 		alloc::construct(start.cur, std::forward<value_type>(val));
 	}
 	else
@@ -629,7 +629,7 @@ void cx_deque<T, Alloc>::push_front(value_type&& val)
 		map_pointer prev_node = start.node - 1;
 		*prev_node = Alloc::allocate(buf_size);
 		--start;
-		alloc::construct(start.cur, val);
+		alloc::construct(start.cur, std::forward<value_type>(val));
 	}
 }
 
@@ -638,34 +638,20 @@ void cx_deque<T, Alloc>::push_front(value_type&& val)
 template<typename T, typename Alloc>
 void cx_deque<T, Alloc>::pop_back()
 {
-	if (finish.cur != finish.first)
-	{
-		--finish.cur;
-		alloc::destroy(finish.cur);
-	}
-	else
-	{
-		--finish;
+	--finish;
+	if(finish.cur == finish.last - 1)
 		Alloc::deallocate(*(finish.node + 1), buf_size);
-		alloc::destroy(finish.cur);
-	}
+	alloc::destroy(finish.cur);
 }
 
 
 template<typename T, typename Alloc>
 void cx_deque<T, Alloc>::pop_front()
 {
-	if (start.cur < start.last - 1)
-	{
-		alloc::destroy(start.cur);
-		++start.cur;
-	}
-	else
-	{
-		alloc::destroy(start.cur);
-		++start;
+	alloc::destroy(start.cur);
+	++start;
+	if (start.cur == start.first)
 		Alloc::deallocate(*(start.node - 1), buf_size);
-	}
 }
 
 
@@ -684,7 +670,7 @@ cx_deque<T, Alloc>::erase(iterator beg, iterator end)
 	if (finish - end < beg - start)
 	{
 		iterator old_finish = finish;
-		finish = std::copy(end, finish, beg);
+		finish = std::move(end, finish, beg);
 
 		alloc::destroy(finish, old_finish);
 		for (map_pointer node = finish.node + 1; node <= old_finish.node;
@@ -698,7 +684,7 @@ cx_deque<T, Alloc>::erase(iterator beg, iterator end)
 	{
 		iterator old_start = start;
 		start = std::move_backward(start, beg, end);
-
+		 
 		alloc::destroy(old_start, start);
 		for (map_pointer node = old_start.node; node != start.node;
 			 ++node){
@@ -725,25 +711,50 @@ cx_deque<T, Alloc>::insert(iterator pos, const value_type& val)
 
 	if (finish - pos < pos - start)
 	{
-		difference_type distance = pos - start;
 		push_back(back());
-		
-		iterator new_pos = start + distance;
-		std::move_backward(new_pos, finish - 2, finish - 1);
-		*new_pos = val;
-		return new_pos;
+		std::move_backward(pos, finish - 2, finish - 1);
+		*pos = val;
+		return pos;
 	}
 	else
 	{
-		difference_type distance = finish - pos;
 		push_front(front());
-
-		iterator new_pos = finish - distance;
-		std::move(start + 2, new_pos, start + 1);
-		*(new_pos - 1) = val;
-		return new_pos - 1;
+		std::move(start + 2, pos + 1, start + 1);
+		*(pos) = val;
+		return pos;
 	}
 }
+
+
+template<typename T, typename Alloc>
+typename cx_deque<T, Alloc>::iterator
+cx_deque<T, Alloc>::insert(iterator pos, value_type&& val)
+{
+	if (pos == finish) {
+		push_back(std::forward<value_type>(val));
+		return finish - 1;
+	}
+	if (pos == start) {
+		push_front(std::forward<value_type>(val));
+		return start;
+	}
+
+	if (finish - pos < pos - start)
+	{
+		push_back(back());
+		std::move_backward(pos, finish - 2, finish - 1);
+		*pos = std::forward<value_type>(val);
+		return pos;
+	}
+	else
+	{
+		push_front(front());
+		std::move(start + 2, pos + 1, start + 1);
+		*pos = std::forward<value_type>(val);
+		return pos;
+	}
+}
+
 
 
 template<typename T, typename Alloc>
