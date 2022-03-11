@@ -37,7 +37,7 @@ template<typename Value>
 struct rb_tree_iterator_traits
 {
 	using value_type = Value;
-	using iterator_category = bidirectional_iterator_tag;
+	using iterator_category = std::bidirectional_iterator_tag;
 	using pointer = Value*;
 	using reference = Value&;
 	using difference_type = std::ptrdiff_t;
@@ -49,7 +49,7 @@ template<typename Value>
 struct rb_tree_const_iterator_traits
 {
 	using value_type = Value;
-	using iterator_category = bidirectional_iterator_tag;
+	using iterator_category = std::bidirectional_iterator_tag;
 	using pointer = const Value*;
 	using reference = const Value&;
 	using difference_type = std::ptrdiff_t;
@@ -306,6 +306,7 @@ public:
 protected:
 	using key_extractor = typename Traits::key_extractor;
 	using mut_iterator = rb_tree_iterator<value_type>;
+	enum class side { left, right, parent };
 
 protected:
 	size_type node_count;
@@ -329,7 +330,7 @@ protected:
 	void rotate_left(mut_iterator x) noexcept;
 	void rotate_right(mut_iterator x) noexcept;
 	void transplant(mut_iterator x, mut_iterator y) noexcept;
-
+	side get_side(mut_iterator iter) const noexcept;
 
 private:
 	void init();
@@ -353,6 +354,8 @@ private:
 	
 	void insert_fixup(mut_iterator x) noexcept;
 	void erase_fixup(mut_iterator x) noexcept;
+	mut_iterator create_nil(mut_iterator x, side nil_side);
+	
 
 public:
 	explicit rb_tree(const key_compare& comp = key_compare()): comp(comp), 
@@ -591,18 +594,7 @@ void rb_tree<Traits>::rotate_left(mut_iterator x) noexcept
 		y->left->parent = x;
 	}
 	
-	y->parent = x->parent;
-	if (x.is_left()) {
-		x->parent->left = y;
-	}
-	else if(x.is_right()) {
-		x->parent->right = y;
-	}
-	else {
-		// x is root，then x->parent is header
-		x->parent->parent = y;
-	}
-
+	transplant(x, y);
 	x->parent = y;
 	y->left = x;
 }
@@ -616,17 +608,7 @@ void rb_tree<Traits>::rotate_right(mut_iterator x) noexcept
 		y->right->parent = x;
 	}
 
-	y->parent = x->parent;
-	if (x.is_left()) {
-		x->parent->left = y;
-	}
-	else if (x.is_right()) {
-		x->parent->right = y;
-	}
-	else {
-		x->parent->parent = y;
-	}
-
+	transplant(x, y);
 	x->parent = y;
 	y->right = x;
 }
@@ -727,7 +709,7 @@ template<typename T>
 typename rb_tree<Traits>::mut_iterator
 rb_tree<Traits>::aux_insert_equal(T&& val)
 {
-	assert(Traits::MULTI);
+	static_assert(Traits::MULTI);
 	mut_iterator y = header;
 	mut_iterator x = root();
 	bool flag = true;
@@ -755,7 +737,7 @@ template<typename T>
 std::pair<typename rb_tree<Traits>::mut_iterator, bool>
 rb_tree<Traits>::aux_insert_unique(T&& val)
 {
-	assert(!Traits::MULTI);
+	static_assert(!Traits::MULTI);
 	mut_iterator y = header;
 	mut_iterator x = root();
 	bool flag = true;
@@ -873,6 +855,45 @@ void rb_tree<Traits>::insert_fixup(mut_iterator x) noexcept
 
 
 template<typename Traits>
+typename rb_tree<Traits>::side 
+rb_tree<Traits>::get_side(mut_iterator iter) const noexcept
+{
+	if (iter.is_left()) {
+		return side::left;
+	}
+	else if (iter.is_right()) {
+		return side::right;
+	}
+	else {
+		return side::parent;
+	}
+}
+
+
+template<typename Traits>
+typename rb_tree<Traits>::mut_iterator 
+rb_tree<Traits>::create_nil(mut_iterator x, side nil_side)
+{
+	//create nil node in the right side
+	mut_iterator iter = create_node(BLACK);
+	switch (nil_side)
+	{
+	case side::left:
+		x->left = iter;
+		break;
+	case side::right:
+		x->right = iter;
+		break;
+	default:
+		x->parent = iter;
+		break;
+	}
+	iter->parent = x;
+	return iter;
+}
+
+
+template<typename Traits>
 void rb_tree<Traits>::transplant(mut_iterator x, mut_iterator y) noexcept
 {
 	if (x.is_left()) {
@@ -900,9 +921,26 @@ rb_tree<Traits>::erase(const_iterator iter) noexcept
 	mut_iterator x;
 	mut_iterator ret = std::next(z);
 	color_type color;
+	bool flag = false;
+	bool nil_flag = false; //whether create nil node
+	side nil_side;
+
+	if (z == min()) {
+		header->left = std::next(z);
+	}
+	if (z == max()) {
+		header->right = std::prev(z);
+	}
 
 	if (z->left.is_null()) {
-		x = z->right.is_null() ? z->parent : z->right;
+		if (z->right.is_null()) {
+			nil_side = get_side(z);
+			x = z->parent;
+			flag = true;
+		}
+		else {
+			x = z->right;
+		}
 		color = z->color;
 		transplant(z, z->right);
 	}
@@ -917,10 +955,14 @@ rb_tree<Traits>::erase(const_iterator iter) noexcept
 			x = y->right;
 		}
 		else if(y->parent != z) {
+			nil_side = side::left;
 			x = y->parent;
+			flag = true;
 		}
 		else {
+			nil_side = side::right;
 			x = y;
+			flag = true;
 		}
 		color = y->color;
 		transplant(y, y->right);
@@ -930,14 +972,97 @@ rb_tree<Traits>::erase(const_iterator iter) noexcept
 		y->left->parent = y;
 		y->color = z->color;
 		if(y->right.is_not_null())
-			y->rigt->parent = y;
+			y->right->parent = y;
+	}
+
+	if (color == BLACK) {
+		if (flag) {
+			x = create_nil(x, nil_side);
+			nil_flag = true;
+		}
+		erase_fixup(x);
+	}
+	if (nil_flag) {
+		transplant(x, mut_iterator());
+		destroy_node(x);
 	}
 
 	destroy_node(z);
-	if (color == BLACK) {
-		erase_fixup(x);
-	}
+	--node_count;
 	return ret;
+}
+
+
+
+template<typename Traits>
+void rb_tree<Traits>::erase_fixup(mut_iterator x) noexcept
+{
+	while (!x.is_root() && x->color == BLACK)
+	{
+		if (x.is_left())
+		{
+			mut_iterator w = x->parent->right; //w为x的兄弟结点
+			if (w->color == RED) {
+				w->color = BLACK;
+				x->parent->color = RED;
+				rotate_left(x->parent);
+				w = x->parent->right;
+			}
+
+			if ((w->left.is_null() && w->right.is_null()) ||
+				(w->left.is_not_null() && w->left->color == BLACK && 
+				 w->right.is_not_null() && w->right->color == BLACK)) {
+				w->color = RED;
+				x = x->parent;
+			}
+			else {
+				if (w->right.is_null() || w->right->color == BLACK) {
+					w->left->color = BLACK;
+					w->color = RED;
+					rotate_right(w);
+					w = x->parent->right;
+				}
+
+				w->color = x->parent->color;
+				x->parent->color = BLACK;
+				w->right->color = BLACK;
+				rotate_left(x->parent);
+				x = root();
+			}
+		}
+		else
+		{
+			mut_iterator w = x->parent->left; //w为x的兄弟结点
+			if (w->color == RED) {
+				w->color = BLACK;
+				x->parent->color = RED;
+				rotate_right(x->parent);
+				w = x->parent->left;
+			}
+
+			if ((w->left.is_null() && w->right.is_null()) ||
+				(w->left.is_not_null() && w->left->color == BLACK &&
+				 w->right.is_not_null() && w->right->color == BLACK)) {
+				w->color = RED;
+				x = x->parent;
+			}
+			else {
+				if (w->left.is_null() || w->left->color == BLACK) {
+					w->right->color = BLACK;
+					w->color = RED;
+					rotate_left(w);
+					w = x->parent->left;
+				}
+
+				w->color = x->parent->color;
+				x->parent->color = BLACK;
+				w->left->color = BLACK;
+				rotate_right(x->parent);
+				x = root();
+			}
+		}
+	}
+	x->color = BLACK;
 }
 
 
