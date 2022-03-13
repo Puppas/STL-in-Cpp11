@@ -1,7 +1,7 @@
 #pragma once
 #include "iterator.h"
+#include <assert.h>
 #include "free_list_allocator.h"
-#include <cassert>
 
 
 namespace cx {
@@ -709,7 +709,7 @@ template<typename T>
 typename rb_tree<Traits>::mut_iterator
 rb_tree<Traits>::aux_insert_equal(T&& val)
 {
-	static_assert(Traits::MULTI);
+	assert(Traits::MULTI);
 	mut_iterator y = header;
 	mut_iterator x = root();
 	bool flag = true;
@@ -737,7 +737,7 @@ template<typename T>
 std::pair<typename rb_tree<Traits>::mut_iterator, bool>
 rb_tree<Traits>::aux_insert_unique(T&& val)
 {
-	static_assert(!Traits::MULTI);
+	assert(!Traits::MULTI);
 	mut_iterator y = header;
 	mut_iterator x = root();
 	bool flag = true;

@@ -31,19 +31,22 @@
 #include <map>
 #include "rb_tree.h"
 #include <any>
+#include <execution>
+#include "set.h"
+#include "map.h"
 
 
 using namespace std;
 
-using rb_tree_t = cx::rb_tree<cx::set_traits<int,std::less<int>, 
-		free_list_allocator<cx::rb_tree_node<int>>, true>>;
+//using rb_tree_t = cx::rb_tree<cx::set_traits<int,std::less<int>, 
+//		free_list_allocator<cx::rb_tree_node<int>>, true>>;
 
 /*
 void f(const rb_tree_t& tree)
 {
 	using iterator = rb_tree_t::iterator;
 	std::queue<iterator> q;
-	//q.push(tree.root());
+	q.push(tree.root());
 	while (!q.empty())
 	{
 		iterator iter = q.front();
@@ -59,29 +62,54 @@ void f(const rb_tree_t& tree)
 	}
 	cout << endl;
 }
-*/
 
+int get_depth(rb_tree_t::iterator iter) {
+	if (iter.is_null()) {
+		return 0;
+	}
+	return max(get_depth(iter->left), get_depth(iter->right)) + 1;
+}*/
+
+
+template<typename T>
 class A
 {
-private:
-	void f() const{
-		std::cout << 'A';
-	}
-
 public:
-	void g(const A& a) {
-		a.f();
+	using ty = T;
+	A() = default;
+	void f() {
+		cout << "hello\n";
 	}
 };
 
+
+template<typename T>
+class B : public A<T>
+{
+public:
+	B() = default;
+	void g() {
+		//using ty = typename A<T>::ty;
+		typename A<T>::ty a = 10;
+		cout << a;
+		this->f();
+	}
+};
 int main()
 {
-	rb_tree_t tree;
-	tree.insert_equal(12);
-	rb_tree_t::iterator iter;
+	cx::multimap<int, int> data;
+	for (int i = 0; i < 10; ++i) {
+		data.insert(std::make_pair(i, i));
+	}
+	for (int i = -10; i < 10; ++i) {
+		data.insert(make_pair(i, i));
+	}
+	//data.erase(data.begin());
+	for (auto iter = data.cbegin(); iter != data.cend(); ++iter)
+	{
+		cout << (*iter).second << '\n';
+	}
 	
-	A a1, a2;
-	a1.g(a2);
 	return 0;
 }
 

@@ -164,8 +164,10 @@
     <ClInclude Include="iterator.h" />
     <ClInclude Include="jthread.h" />
     <ClInclude Include="malloc_allocator.h" />
+    <ClInclude Include="map.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="rb_tree.h" />
+    <ClInclude Include="set.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="thread_queue.h" />
     <ClInclude Include="thread_stack.h" />
