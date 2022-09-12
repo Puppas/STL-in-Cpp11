@@ -17,29 +17,29 @@ private:
 	};
 
 	static obj *free_list[FREE_LIST_NUM];
-	//ÄÚ´æ³ØÆğÊ¼Î»ÖÃ
+	//å†…å­˜æ± èµ·å§‹ä½ç½®
 	static char *start_pool;
-	//ÄÚ´æ³Ø½áÊøÎ»ÖÃ
+	//å†…å­˜æ± ç»“æŸä½ç½®
 	static char *end_pool;
 	static std::size_t heap_size;
 
 
-	//½«byteÉÏµ÷ÖÁ8µÄ±¶Êı
+	//å°†byteä¸Šè°ƒè‡³8çš„å€æ•°
 	static std::size_t round_up(std::size_t byte) noexcept
 	{
 		return ((byte) + ALIGN - 1) & ~(ALIGN - 1);
 	}
 
-	//ÓÉËùĞèÄÚ´æ´óĞ¡¾ö¶¨free_listµÄË÷Òı
+	//ç”±æ‰€éœ€å†…å­˜å¤§å°å†³å®šfree_listçš„ç´¢å¼•
 	static std::size_t free_list_index(std::size_t byte) noexcept
 	{
 		return  byte / (ALIGN + 1);
 	}
 
-	//Îªfree_list¼ÓÈëĞÂµÄ¿é
+	//ä¸ºfree_liståŠ å…¥æ–°çš„å—
 	static T *refill(std::size_t block_size);
 
-	//·ÖÅä num ¸ö block_size µÄ¿Õ¼ä
+	//åˆ†é… num ä¸ª block_size çš„ç©ºé—´
 	static char *chunk_alloc(std::size_t block_size, std::size_t& num);
 
 
@@ -57,9 +57,7 @@ public:
 
 template<typename T>
 typename free_list_allocator<T>::obj *
-free_list_allocator<T>::free_list[FREE_LIST_NUM] = {
-	0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
-};
+free_list_allocator<T>::free_list[FREE_LIST_NUM] = 0;
 
 
 template<typename T>
@@ -87,7 +85,7 @@ T *free_list_allocator<T>::allocate(std::size_t num)
 		return refill(round_up(num * sizeof(T)));
 	}
 
-	//½«free_listÄÚµÄÔªËØÖ¸ÏòµÚ2¸öÄÚ´æ¿é
+	//å°†free_listå†…çš„å…ƒç´ æŒ‡å‘ç¬¬2ä¸ªå†…å­˜å—
 	*target_free_list = result->free_list_link;
 	return reinterpret_cast<T*>(result);
 }
@@ -97,7 +95,7 @@ template<typename T>
 void free_list_allocator<T>::deallocate(T *p, std::size_t num) noexcept
 {
 	/*
-      pÎªĞèÒª»ØÊÕµÄÄÚ´æÇøÓòµÄÊ×Ö¸Õë£¬num´ú±íÇøÓòÄÚÔªËØµÄ¸öÊı
+      pä¸ºéœ€è¦å›æ”¶çš„å†…å­˜åŒºåŸŸçš„é¦–æŒ‡é’ˆï¼Œnumä»£è¡¨åŒºåŸŸå†…å…ƒç´ çš„ä¸ªæ•°
 	*/
 
 	std::size_t size = num * sizeof(T);
@@ -106,7 +104,7 @@ void free_list_allocator<T>::deallocate(T *p, std::size_t num) noexcept
 		return;
 	}
 	
-	//±»»ØÊÕµÄÄÚ´æ½«±»¼ÓÈëtarget_free_listÖ¸ÏòµÄÁ´±í
+	//è¢«å›æ”¶çš„å†…å­˜å°†è¢«åŠ å…¥target_free_listæŒ‡å‘çš„é“¾è¡¨
 	auto target_free_list = free_list + free_list_index(size);
 	obj *target_block = reinterpret_cast<obj*>(p);
 	target_block->free_list_link = *target_free_list;
@@ -118,9 +116,9 @@ void free_list_allocator<T>::deallocate(T *p, std::size_t num) noexcept
 template<typename T>
 T *free_list_allocator<T>::refill(std::size_t block_size)
 {
-	//Ä¬ÈÏ·ÖÅä16¿éÄÚ´æ
+	//é»˜è®¤åˆ†é…16å—å†…å­˜
 	std::size_t num = 16;
-	//chunkÖ¸ÏòĞÂÄÚ´æµÄÆğÊ¼µØÖ·
+	//chunkæŒ‡å‘æ–°å†…å­˜çš„èµ·å§‹åœ°å€
 	char *chunk = chunk_alloc(block_size, num);   //num passed by reference
 
 	if (num == 1) {
@@ -128,7 +126,7 @@ T *free_list_allocator<T>::refill(std::size_t block_size)
 	}
 
 	auto target_free_list = free_list + free_list_index(block_size);
-	//µÚÒ»¿éÄÚ´æ×÷Îª½á¹û·µ»Ø
+	//ç¬¬ä¸€å—å†…å­˜ä½œä¸ºç»“æœè¿”å›
 	T *result = reinterpret_cast<T*>(chunk);
 	--num;
 
@@ -159,8 +157,8 @@ free_list_allocator<T>::chunk_alloc(std::size_t block_size, std::size_t& num)
 {
 	char *result;
 	/*
-	total_byte: ×Ü¹²ĞèÒªµÄbyte
-	left_byte: ÄÚ´æ³ØÊ£ÓàµÄbyte
+	total_byte: æ€»å…±éœ€è¦çš„byte
+	left_byte: å†…å­˜æ± å‰©ä½™çš„byte
 	*/
 	std::size_t total_byte = block_size * num;
 	std::size_t left_byte = end_pool - start_pool;
@@ -173,7 +171,7 @@ free_list_allocator<T>::chunk_alloc(std::size_t block_size, std::size_t& num)
 	}
 	else if (left_byte > block_size)
 	{
-		//num: Êµ¼Ê·ÖÅäµÄ¿éµÄ¸öÊı
+		//num: å®é™…åˆ†é…çš„å—çš„ä¸ªæ•°
 		num = left_byte / block_size;
 		result = start_pool;
 		start_pool += num * block_size;
@@ -181,11 +179,11 @@ free_list_allocator<T>::chunk_alloc(std::size_t block_size, std::size_t& num)
 	}
 	else
 	{
-		//ÄÚ´æ³ØĞÂ´óĞ¡
+		//å†…å­˜æ± æ–°å¤§å°
 		std::size_t byte_to_get = 2 * total_byte + round_up(heap_size >> 4);
 
 		if (left_byte > 0) {
-			//½«×îºóµÄ¿Õ¼ä·ÖÅä³öÈ¥
+			//å°†æœ€åçš„ç©ºé—´åˆ†é…å‡ºå»
 			obj *new_head = reinterpret_cast<obj*>(start_pool);
 			auto target_free_list = free_list + free_list_index(left_byte);
 
@@ -198,11 +196,11 @@ free_list_allocator<T>::chunk_alloc(std::size_t block_size, std::size_t& num)
 		start_pool = static_cast<char*>(malloc(byte_to_get));
 		if (start_pool == nullptr) {
 			obj **target_free_list;
-			obj *head;		//Ö¸Ïò free_list µÄµÚÒ»¸öÄÚ´æ¿é
+			obj *head;		//æŒ‡å‘ free_list çš„ç¬¬ä¸€ä¸ªå†…å­˜å—
 
 			/*
-			±éÀú¿é´óĞ¡´óÓÚ block_size µÄ free_list ÒÔ
-			»ñÈ¡¿ÕÏĞµÄÄÚ´æ¿é¼ÓÈëµ½ÄÚ´æ³ØÖĞ
+			éå†å—å¤§å°å¤§äº block_size çš„ free_list ä»¥
+			è·å–ç©ºé—²çš„å†…å­˜å—åŠ å…¥åˆ°å†…å­˜æ± ä¸­
 			*/
 			for (std::size_t i = block_size + ALIGN; i <= MAX_BLOCK_SIZE; i += ALIGN) {
 				
@@ -211,7 +209,7 @@ free_list_allocator<T>::chunk_alloc(std::size_t block_size, std::size_t& num)
 
 				if (head != nullptr) {
 					/*
-					Èç¹ûÓĞ¿ÕÏĞ¿éÔò¼ÓÈëµ½ÄÚ´æ³ØÖĞ
+					å¦‚æœæœ‰ç©ºé—²å—åˆ™åŠ å…¥åˆ°å†…å­˜æ± ä¸­
 					*/
 					*target_free_list = head->free_list_link;
 					start_pool = reinterpret_cast<char*>(head);
